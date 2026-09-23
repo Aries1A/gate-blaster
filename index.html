@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v6</title>
+<title>GATE BLASTER · WEBGL v7</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -21,6 +21,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
 .pill .big{font-size:17px;font-weight:950;line-height:1.22;text-shadow:0 1px #0008}
 #stage{flex:1;min-width:66px}.gold{color:#ffe08b}.cyan{color:#8ef9ee}.red{color:#ff98a4}
 #pause,#audio{pointer-events:auto;border:1px solid #86d9ff7a;background:#09283fdb;color:#fff;border-radius:11px;width:37px;height:40px;font-weight:900;font-size:18px;flex-shrink:0}#audio.on{border-color:#8ffff0;background:#0e505b;color:#a9ffed}
+.upgrades{display:grid;gap:9px;margin:16px 0}.upgrade{display:flex;align-items:center;gap:12px;text-align:left;padding:13px 12px;border:1px solid #84ddff83;border-radius:13px;color:#f0fbff;background:linear-gradient(115deg,#1c4961,#123047);font:inherit;cursor:pointer}.upgrade .emoji{font-size:29px;width:39px;text-align:center}.upgrade b{display:block;font-size:14px}.upgrade small{display:block;font-size:11px;color:#b9d6e7;margin-top:3px}
 #progress{margin:7px auto 0;width:min(74%,360px);height:5px;background:#09283ed9;border-radius:6px;overflow:hidden;border:1px solid #74e8ff5b}
 #progress-fill{width:0;height:100%;background:linear-gradient(90deg,#4ca8f0,#92fff1);transition:width .15s}
 #boss-hud{display:none;position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 80px);transform:translateX(-50%);width:min(80%,440px);padding:8px 12px 9px;border-radius:12px;border:1px solid #ffadb899;background:linear-gradient(#391725f0,#220f1ce8);box-shadow:0 0 20px #ff45632c;text-align:center}
@@ -69,14 +70,15 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
    <div class="pill"><div class="small">👥 TEAM</div><div class="big cyan" id="team-val">13</div></div>
    <div class="pill"><div class="small">🔫 WEAPON</div><div class="big gold" id="weapon-val">LV 1</div></div>
    <div class="pill"><div class="small">❤️ HP</div><div class="big" id="hp-val">100</div></div>
-   <button id="audio" aria-label="効果音をオンにする">♪</button><button id="pause" aria-label="一時停止">Ⅱ</button>
+   <button id="audio" aria-label="音楽と効果音をオフにする">♫</button><button id="pause" aria-label="一時停止">Ⅱ</button>
   </div>
   <div id="progress"><div id="progress-fill"></div></div>
   <div id="boss-hud"><div class="title"><span>⚠ TITAN / BOSS</span><span id="phase-val">PHASE 1</span></div><div id="boss-fill-bg"><div id="boss-fill"></div></div></div>
   <div id="combo-hud"><small>🔥 KILL STREAK</small><b id="combo-val">0 ×</b></div>
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v6</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900">⇧ STRAIGHT FIRE</div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v7</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -251,7 +253,18 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
-let soundOn=false,audioContext=null;
+let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
+let bullets=[],runBuild=null,bossHits=0;
+function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
+function formation(team=player.team){const n=Math.min(96,Math.max(1,Math.floor(team))),cols=Math.min(18,Math.ceil(Math.sqrt(n*2.5))),rows=Math.ceil(n/cols),out=[];
+ for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols,per=Math.min(cols,n-r*cols);out.push({x:player.x+(c-(per-1)/2)*.35+(r%2?.15:0),z:player.z+(r-(rows-1)/2)*.43});}return out;}
+function enemyPositions(e){const n=Math.max(1,Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1))),cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols),out=[];
+ for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols;out.push({x:e.x+(c-(cols-1)/2)*.39,z:e.z+(r-(rows-1)/2)*.42});}return out;}
+function musicTone(freq,dur,vol,type='triangle'){if(!audioContext||!soundOn)return;const now=audioContext.currentTime,o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);if(type==='sine')o.frequency.exponentialRampToValueAtTime(Math.max(38,freq*.57),now+dur);a.gain.setValueAtTime(.0001,now);a.gain.linearRampToValueAtTime(vol,now+.009);a.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(a);a.connect(audioContext.destination);o.start(now);o.stop(now+dur+.025);}
+function music(dt){if(!soundOn||mode!=='playing')return;if(!audioContext){try{audioContext=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}}if(audioContext.state!=='running')return;
+ musicClock-=dt;let guard=0;while(musicClock<=0&&guard++<3){musicClock+=.115;const step=musicStep++%32,beat=step%16,bossOn=!!(boss&&!boss.used);const roots=bossOn?[55,55,58.27,49]:[65.41,58.27,61.74,55],root=roots[Math.floor(step/8)];
+ if(beat%4===0)musicTone(beat===0?110:88,.19,.048,'sine');if(beat===4||beat===12)musicTone(185,.09,.017,'sawtooth');if(beat%2===0)musicTone(4200,.022,.003,'square');
+ if(beat%2===0)musicTone(root*(beat===6?2:1),.19,bossOn?.018:.013,'sawtooth');const lead=[0,7,10,7,12,10,7,5,0,7,10,14,12,10,7,5];if(beat%2===1)musicTone(root*4*Math.pow(2,lead[beat]/12),.075,bossOn?.010:.007,'triangle');}}
 function cue(freq=640,duration=.08,type='triangle',volume=.035){if(!soundOn)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*.68),audioContext.currentTime+duration);a.gain.setValueAtTime(volume,audioContext.currentTime);a.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+duration);o.connect(a);a.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+duration)}catch(e){soundOn=false}}
 function flash(col='hit'){flashTime=.17;impactFlash.style.background=col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)'}
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+' KILL COMBO!',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
@@ -261,8 +274,8 @@ function text(msg,x,y,z,color='#fff',life=.85){texts.push({msg,x,y,z,color,life,
 function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';noticeTime=dur}
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 function reset(){
- t=0;entities=[];sparks=[];texts=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
- player={x:0,tx:0,z:5.3,team:13,weapon:1,drone:0,heli:0,turret:0,hp:100,maxHp:100,power:1};squadBuffer=13;
+ t=0;entities=[];sparks=[];texts=[];bullets=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor};squadBuffer=player.team;
  const mobHp=27+stage*11,crateHp=32+stage*9;
  spawn('mob',.25,{x:-1.15,hp:mobHp,n:12});
  spawn('mob',1.45,{x:1.08,hp:mobHp+10,n:14});
@@ -295,8 +308,9 @@ function reset(){
  $('stage-val').textContent=String(stage).padStart(2,'0');
  announce('STAGE '+stage,1.4);
 }
-function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';cue(780,.12)}
-function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v6 · OVERDRIVE</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>赤い敵を倒し、増援を呼ぶ巨大ボスを撃破せよ。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>最高到達ステージ ${best}</div>`);$('start').onclick=start}
+function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
+function beginRun(){stage=1;runBuild=makeBuild();start()}
+function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v7 · ROGUE RUSH</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>赤い敵を倒し、増援を呼ぶ巨大ボスを撃破せよ。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
  if(mode!=='playing')return;
@@ -307,7 +321,7 @@ function win(){
  show('<div class="victory">'+bits+'</div><div class="eyebrow">✦ LEGENDARY VICTORY ✦</div><h1>TITAN <em>CRUSHED!</em></h1><p>大ボス撃破！連続撃破と支援兵器で次へ進もう。</p><div class="stats"><div class="stat"><strong>'+Math.ceil(player.team)+'</strong><small>生存部隊</small></div><div class="stat"><strong>'+kills+'</strong><small>撃破数</small></div><div class="stat"><strong>'+maxCombo+'×</strong><small>最大コンボ</small></div></div><button class="cta" id="next">▶ 次のステージへ</button><div class="mini">武器 LV.'+player.weapon+' / 🚁 '+player.heli+' / 🔧 '+player.turret+'</div>');
  $('next').onclick=()=>{stage++;start()};
 }
-function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>人数ゲートや強化コンテナを狙い、<br>ボスの赤い攻撃予告から逃げよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=()=>{stage=1;start()}}
+function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>人数ゲートや強化コンテナを狙い、<br>ボスの赤い攻撃予告から逃げよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 function doSpawn(e){
  if(e.kind==='mob')entities.push({kind:'mob',x:e.x,z:-30,y:0,hp:e.hp,maxHp:e.hp,n:e.n,speed:rnd(6.3,7.7),hit:0,seed:rnd(0,100),used:false});
  else if(e.kind==='gate')entities.push({kind:'gate',x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,length:8.5,used:false});
@@ -329,6 +343,7 @@ function reward(e){
 }
 function damage(e,value,source='rifle'){
  if(!e||e.used||mode!=='playing')return;
+ if(e.kind==='boss'&&e.z<player.z-6.2)return;
  const crit=source==='rifle'&&Math.random()<.09,actual=crit?value*1.65:value;
  e.hp-=actual;e.hit=.12;
  if(!e.labelTime||e.labelTime<=0||crit||source!=='rifle'){
