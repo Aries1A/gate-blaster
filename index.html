@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a2540">
-<title>GATE BLASTER · Swarm Run</title>
+<title>GATE BLASTER · SWARM v2.1</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;color-scheme:dark}
 *{box-sizing:border-box}
@@ -93,7 +93,7 @@ function hide(){overlay.classList.add('off')}
 
 function menu(){
   mode='menu';
-  show(`<div class="eyebrow">IMAGE-STYLE SWARM RUN</div>
+  show(`<div class="eyebrow">SWARM v2.1 · 13人スタート</div>
   <h1>GATE <em>BLASTER</em></h1>
   <p>今度は、画像みたいな <b>大群ランナー寄り</b> に作り直した版。<br>
   開始直後から敵が襲来。左右にスライドして <b>+1 階段</b> や <b>武器コンテナ</b> を取り、
@@ -490,6 +490,7 @@ function drawHUD(){
   label('武器LV '+p.weapon, W-(compact?77:92), compact?65:28, 14,'#ffe08e');
   label('支援 '+p.drones, W-(compact?77:92), compact?88:48, 14,'#a8dcff');
   label('ボスを撃退',18,H-20,22,'#e8f4ff','left');
+  label('SWARM v2.1',W-12,H-20,13,'#a9e4f5','right');
 }
 
 function draw(){
