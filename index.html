@@ -310,7 +310,7 @@ function reset(){
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
 function beginRun(){stage=1;runBuild=makeBuild();start()}
-function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v7 · ROGUE RUSH</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>赤い敵を倒し、増援を呼ぶ巨大ボスを撃破せよ。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
+function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v7 · ROGUE RUSH</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>接近して殴る巨大ボスを倒し、クリア後は3択で強化しよう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
  if(mode!=='playing')return;
@@ -345,7 +345,7 @@ function win(){
   cue(1000,.20);stage++;start();
  });
 }
-function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>人数ゲートや強化コンテナを狙い、<br>ボスの赤い攻撃予告から逃げよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
+function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減り、<br>ボスのパンチを何度も受けると敗北。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 function doSpawn(e){
  if(e.kind==='mob')entities.push({kind:'mob',x:e.x,z:-30,y:0,hp:e.hp,maxHp:e.hp,n:e.n,speed:rnd(6.3,7.7),hit:0,seed:rnd(0,100),used:false});
  else if(e.kind==='gate')entities.push({kind:'gate',x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,length:8.5,used:false});
@@ -419,58 +419,89 @@ function supportFire(dt){
  }
 }
 function update(dt){
- if(mode!=='playing')return;t+=dt;walk+=dt;
+ if(mode!=='playing')return;
+ t+=dt;walk+=dt;music(dt);
  if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
  if(flashTime>0){flashTime-=dt;if(flashTime<=0)impactFlash.style.opacity='0'}
  if(introTime>0){introTime-=dt;if(introTime<=0)bossIntro.classList.remove('show')}
  for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
  if(boss&&boss.labelTime>0)boss.labelTime-=dt;
- while(eventIndex<waveEvents.length && waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
+ while(eventIndex<waveEvents.length&&waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
  player.x+=(player.tx-player.x)*Math.min(1,dt*11);
  for(const e of entities){
   if(e.used)continue;e.z+=e.speed*dt;if(e.hit>0)e.hit-=dt;
   if(e.kind==='gate'){
-   if(Math.abs(e.x-player.x)<1.38 && Math.abs(e.z-player.z)<e.length/2+.4){
+   if(Math.abs(e.x-player.x)<1.38&&Math.abs(e.z-player.z)<e.length/2+.4){
     const gain=Math.min(e.gain-e.taken,dt*7.0);
     if(gain>0){e.taken+=gain;player.team+=gain;if(Math.random()<.18)text('+1',player.x,1.4,player.z-1.3,'#93fff3')}
    }
    if(e.z-e.length*.5>player.z+2||e.taken>=e.gain)e.used=true;
   }else if(e.kind==='mob'){
-   if(e.z>=player.z-1.25 && Math.abs(e.x-player.x)<1.24){
-    e.used=true;const lost=Math.min(player.team-1,Math.max(5,Math.ceil(e.hp/3.5)));
-    player.team-=lost;player.hp-=4+Math.ceil(lost*.35);text('-'+Math.ceil(lost),player.x,1.6,player.z,'#ff9aa8');burst(player.x,1,player.z,C.redLight,12);flash('hurt');cue(155,.16,'sawtooth',.045);
-    if(player.team<=1||player.hp<=0)lose();
+   if(!e.touched&&e.z>=player.z-.16){
+    e.touched=true;const friends=formation(),foes=enemyPositions(e);
+    let losses=0;
+    for(const f of friends){if(foes.some(enemy=>Math.abs(f.x-enemy.x)<.34&&Math.abs(f.z-enemy.z)<.43)){
+     losses++;if(losses<=8)burst(f.x,.72,f.z,C.redLight,3);
+    }}
+    const lost=Math.min(Math.max(0,Math.floor(player.team)-1),losses);
+    if(lost>0){player.team-=lost;text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035)}
+    e.used=true;if(player.team<=1)lose();
    }else if(e.z>player.z+2)e.used=true;
-  }else if(e.kind==='crate' && e.z>player.z+1)e.used=true;
+  }else if(e.kind==='crate'&&e.z>player.z+1)e.used=true;
  }
  entities=entities.filter(e=>!e.used);
  if(boss&&!boss.used){
-  if(!boss.entered){boss.z=Math.min(-11.5,boss.z+dt*6.7);if(boss.z>=-11.5){boss.entered=true;announce('BOSS BATTLE!',1.1)}}
-  else{
-   boss.sway+=dt;boss.x=Math.sin(boss.sway*.68)*1.25;
-   boss.phase=boss.hp/boss.maxHp<.32?3:boss.hp/boss.maxHp<.66?2:1;
+  boss.z=Math.min(player.z-2.05,boss.z+dt*(boss.entered?2.0:4.65));
+  if(!boss.entered&&boss.z>=-10.5){boss.entered=true;announce('BOSS APPROACHING!',1.1)}
+  boss.sway+=dt;boss.x+=(clamp(player.x,-2.4,2.4)-boss.x)*Math.min(1,dt*.55);
+  boss.phase=boss.hp/boss.maxHp<.32?3:boss.hp/boss.maxHp<.66?2:1;
+  if(boss.z>=player.z-2.06){
    boss.attack-=dt;boss.summon-=dt;
-   if(boss.attack<=0 && !warning){warning={x:clamp(player.x+rnd(-.25,.25),-3.3,3.3),time:1.05};boss.attack=Math.max(1.7,3.2-boss.phase*.35-stage*.08);announce('⚠ DODGE!',.75)}
-   if(boss.summon<=0){boss.summon=6.2-boss.phase*.8;
-    for(const x of [-2.1,2.1])entities.push({kind:'mob',x,z:-22,y:0,hp:38+stage*16+boss.phase*16,maxHp:38+stage*16+boss.phase*16,n:14+boss.phase*2,speed:6.8,hit:0,seed:rnd(0,100),used:false});
-    announce('⚠ ENEMY REINFORCEMENTS',1.2);
+   if(boss.attack<=0&&!warning){warning={x:boss.x,time:.83,boss:true};boss.attack=Math.max(1.5,3.35-boss.phase*.36-stage*.065);announce('⚠ PUNCH INCOMING!',.7);cue(160,.18,'sawtooth',.04)}
+   if(boss.summon<=0){boss.summon=6.7-boss.phase*.7;
+    for(const x of [-2.1,2.1]){const hp=38+stage*16+boss.phase*16;
+     entities.push({kind:'mob',x,z:-22,y:0,hp,maxHp:hp,n:14+boss.phase*2,speed:6.8,hit:0,seed:rnd(0,100),used:false});
+    }announce('⚠ ENEMY REINFORCEMENTS',1.2);
    }
   }
  }
  if(warning){warning.time-=dt;if(warning.time<=0){
-  if(Math.abs(player.x-warning.x)<1.1){const loss=Math.min(player.team-1,7+boss.phase*3+stage);player.team-=loss;player.hp-=12+boss.phase*4+stage;text('-'+Math.ceil(loss),player.x,1.5,player.z,'#ff8b98');burst(player.x,1,player.z,C.redLight,22);flash('hurt');cue(130,.19,'sawtooth',.05);if(player.hp<=0||player.team<=1)lose()}
+  if(Math.abs(player.x-warning.x)<2.25){
+   bossHits++;const loss=Math.min(Math.max(0,Math.floor(player.team)-1),Math.max(8,Math.ceil(player.team*(.49+boss.phase*.055)*(1-player.armor))));
+   player.team-=loss;player.hp-=24+boss.phase*3+stage*.5;
+   text('SMASH! -'+loss,player.x,2.1,player.z,'#ff879b',1.2);
+   burst(player.x,1.1,player.z,C.redLight,38);flash('hurt');cue(105,.34,'sawtooth',.055);
+   if(player.hp<=0||player.team<=1)lose();
+  }else{text('DODGE!',player.x,2.0,player.z,'#8dfff0');cue(840,.11)}
   warning=null;
  }}
  shotClock-=dt;
- if(shotClock<=0){shotClock=.13;const target=pickTarget();if(target){
-  const dps=(13+player.team*.50+player.weapon*11+player.drone*7)*player.power*(1+Math.min(combo,20)*.016);
-  damage(target,dps*.13);
-  for(let i=0;i<Math.min(5,1+Math.floor(player.team/20));i++)sparks.push({x:player.x+rnd(-.4,.4),y:1.0,z:player.z-1.3,vx:(target.x-player.x)*7+rnd(-.25,.25),vy:rnd(-.6,.4),vz:(target.z-player.z)*.56,life:.13,color:C.cyan,bolt:true,tx:target.x,tz:target.z});
+ if(shotClock<=0){shotClock+=Math.max(.055,.145/player.rate);
+  const count=Math.min(9,Math.max(1,1+Math.floor(player.team/17)));
+  const squad=formation(),dmg=(9+player.weapon*5+player.drone*3)*player.power*(1+Math.min(combo,20)*.016);
+  for(let i=0;i<count;i++){
+   const f=squad[Math.min(squad.length-1,Math.floor((i+.5)*squad.length/count))];
+   bullets.push({x:f.x,y:1.2,z:f.z-1.02,vz:-43,damage:dmg,life:1.25});
   }
  }
+ for(const b of bullets){
+  const oldZ=b.z;b.z+=b.vz*dt;b.life-=dt;if(b.life<=0)continue;
+  let hit=null,near=1e6;
+  for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind))continue;
+   const dx=Math.abs(b.x-e.x),radius=e.kind==='mob'?Math.min(1.6,.2+Math.ceil(Math.sqrt(e.n))*.18):.86;
+   if(dx>radius)continue;
+   const dz=e.z-oldZ;if(dz>1.15||e.z<b.z-1.15)continue;
+   if(dz<near){near=dz;hit=e}
+  }
+  if(boss&&!boss.used&&Math.abs(b.x-boss.x)<1.55&&boss.z<=oldZ+1.0&&boss.z>=b.z-1.0){
+   if(boss.z-oldZ<near)hit=boss;
+  }
+  if(hit){damage(hit,b.damage,'rifle');b.life=0;burst(b.x,hit.kind==='boss'?3.5:1.4,hit.z,C.cyan,3)}
+ }
+ bullets=bullets.filter(b=>b.life>0&&b.z>-69).slice(-120);
  supportFire(dt);
- for(const s of sparks){s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;s.vy-=10*dt;s.life-=dt}
- sparks=sparks.filter(s=>s.life>0);
+ for(const p of sparks){p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=10*dt;p.life-=dt}
+ sparks=sparks.filter(p=>p.life>0);
  for(const tt of texts){tt.y+=dt*1.8;tt.life-=dt}texts=texts.filter(tt=>tt.life>0);
  if(noticeTime>0){noticeTime-=dt;if(noticeTime<=0)notice.style.opacity='0'}
 }
@@ -597,12 +628,8 @@ function drawSupport(){
  }
 }
 function squad(){
- const n=Math.min(46,Math.floor(player.team)),cols=Math.min(8,Math.ceil(Math.sqrt(n*1.7))),rows=Math.ceil(n/cols);
- for(let i=0;i<n;i++){
-  const r=Math.floor(i/cols),c=i%cols,per=Math.min(cols,n-r*cols);
-  const x=player.x+(c-(per-1)/2)*.35+(r%2?.15:0),z=player.z+(r-(rows-1)/2)*.43;
-  soldier(x,z,true,i*.8,.34);
- }
+ const friends=formation();
+ for(let i=0;i<friends.length;i++)soldier(friends[i].x,friends[i].z,true,i*.8,.34);
  for(let i=0;i<player.drone;i++){
   const a=walk*2+i*TAU/player.drone,x=player.x+Math.cos(a)*1.45,z=player.z+Math.sin(a)*.75;
   box(x,2.48,z,.49,.18,.54,C.blueLight);box(x,2.60,z,.88,.042,.10,C.gun);box(x,2.60,z,.10,.042,.88,C.gun);
@@ -614,8 +641,9 @@ function render(){
  if(player){
   for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)}
   if(boss&&!boss.used)drawBoss(boss);
-  if(warning){box(warning.x,.17,player.z-.25,2.0,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx,.20,player.z-.25,.055,.05,6.8,C.eye)}
+  if(warning){box(warning.x,.17,player.z-.25,warning.boss?3.7:2.0,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx*(warning.boss?1.85:1),.20,player.z-.25,.055,.05,6.8,C.eye)}
   squad();drawSupport();
+  for(const b of bullets){sphere(b.x,b.y,b.z,.095,.095,.34,C.cyan);box(b.x,b.y,b.z+.28,.045,.045,.62,C.blueLight)}
   for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)}
  }
  flush();
@@ -655,8 +683,9 @@ for(const canvas of [glCanvas,fxCanvas]){
 document.addEventListener('keydown',e=>{if(!player)return;if(e.key==='ArrowLeft'||e.key==='a')player.tx=clamp(player.tx-.65,-3.55,3.55);if(e.key==='ArrowRight'||e.key==='d')player.tx=clamp(player.tx+.65,-3.55,3.55);if(e.key===' '&&mode==='playing')togglePause()});
 function togglePause(){if(mode==='playing'){mode='paused';show(`<div class="eyebrow">PAUSE</div><h1>一時停止</h1><p>続きから再開できるよ。</p><button class="cta" id="resume">▶ 再開</button>`);$('resume').onclick=togglePause;$('pause').textContent='▶'}else if(mode==='paused'){mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ'}}
 $('pause').onclick=togglePause;
-$('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'♪';$('audio').setAttribute('aria-label',soundOn?'効果音をオフにする':'効果音をオンにする');if(soundOn)cue(840,.12)};
+$('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'♪';$('audio').setAttribute('aria-label',soundOn?'音楽と効果音をオフにする':'音楽と効果音をオンにする');if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){}musicClock=0;cue(840,.12)}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')togglePause()});
+$('audio').classList.add('on');
 // backdrop actors on menu, real gameplay starts only from Start
 player={x:0,tx:0,z:5.3,team:26,weapon:2,drone:1,heli:1,turret:1,hp:100,maxHp:100};
 entities=[{kind:'gate',x:2.2,z:-19,y:0,length:8.5,gain:28,taken:0,used:false},{kind:'crate',x:-2.2,z:-13,hp:82,maxHp:82,reward:'heli',hit:0,used:false},{kind:'mob',x:0,z:-24,hp:120,maxHp:120,n:22,seed:2,used:false,hit:0}];
