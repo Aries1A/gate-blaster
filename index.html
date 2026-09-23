@@ -346,14 +346,46 @@ function pickTarget(){
  let bestTarget=null,score=-1e6;
  for(const e of entities){if(e.used||!['crate','mob'].includes(e.kind)||e.z>player.z+1||e.z<-35)continue;
   const dx=Math.abs(e.x-player.x);if(dx>2.35)continue;
-  const s=(e.kind==='crate'?3:0)-dx*.85+(e.z+32)*.14;
+  const s=(e.kind==='crate'?3:0)-dx*.85+(e.z+32)*.14+(e.kind==='mob'&&e.z>0?8:0);
   if(s>score){score=s;bestTarget=e}
  }
- if(boss&&boss.entered&&!boss.used){const s=8+boss.z*.03-Math.abs(boss.x-player.x)*.3;if(s>score)bestTarget=boss}
+ if(boss&&boss.entered&&!boss.used){const s=7+boss.z*.03-Math.abs(boss.x-player.x)*.3;if(s>score)bestTarget=boss}
  return bestTarget;
+}
+function supportTarget(){
+ const mobs=entities.filter(e=>e.kind==='mob'&&!e.used&&e.z>-27&&e.z<player.z+.2);
+ mobs.sort((a,b)=>b.z-a.z);
+ return mobs[0]||(boss&&boss.entered&&!boss.used?boss:null);
+}
+function supportFire(dt){
+ if(!player.heli&&!player.turret)return;
+ const e=supportTarget();if(!e)return;
+ helicopterClock-=dt;turretClock-=dt;
+ if(player.heli&&helicopterClock<=0){
+  helicopterClock=.7;
+  for(let i=0;i<player.heli;i++){
+   const x=player.x+(i%2?2.2:-2.2);
+   damage(e,24+player.weapon*3+stage*1.7,'heli');
+   sparks.push({x,y:3.9,z:player.z-1,vx:(e.x-x)*2.2,vy:-.7,vz:(e.z-player.z+1)*1.35,life:.30,color:C.rocket,rocket:true});
+   burst(e.x,e.kind==='boss'?3.0:1.25,e.z,C.rocket,12);cue(190,.11,'sawtooth',.028);
+  }
+ }
+ if(player.turret&&turretClock<=0){
+  turretClock=.19;
+  for(let i=0;i<player.turret;i++){
+   const x=player.x+(i%2?1.0:-1.0);
+   damage(e,7+player.weapon*1.5,'turret');
+   sparks.push({x,y:1.35,z:player.z-.5,vx:(e.x-x)*5,vy:0,vz:(e.z-player.z+.5)*.75,life:.13,color:C.blueLight,bolt:true});
+  }
+ }
 }
 function update(dt){
  if(mode!=='playing')return;t+=dt;walk+=dt;
+ if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
+ if(flashTime>0){flashTime-=dt;if(flashTime<=0)impactFlash.style.opacity='0'}
+ if(introTime>0){introTime-=dt;if(introTime<=0)bossIntro.classList.remove('show')}
+ for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
+ if(boss&&boss.labelTime>0)boss.labelTime-=dt;
  while(eventIndex<waveEvents.length && waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
  player.x+=(player.tx-player.x)*Math.min(1,dt*11);
  for(const e of entities){
@@ -367,7 +399,7 @@ function update(dt){
   }else if(e.kind==='mob'){
    if(e.z>=player.z-1.25 && Math.abs(e.x-player.x)<1.24){
     e.used=true;const lost=Math.min(player.team-1,Math.max(5,Math.ceil(e.hp/3.5)));
-    player.team-=lost;player.hp-=4+Math.ceil(lost*.35);text('-'+Math.ceil(lost),player.x,1.6,player.z,'#ff9aa8');burst(player.x,1,player.z,C.redLight,12);
+    player.team-=lost;player.hp-=4+Math.ceil(lost*.35);text('-'+Math.ceil(lost),player.x,1.6,player.z,'#ff9aa8');burst(player.x,1,player.z,C.redLight,12);flash('hurt');cue(155,.16,'sawtooth',.045);
     if(player.team<=1||player.hp<=0)lose();
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate' && e.z>player.z+1)e.used=true;
@@ -387,16 +419,17 @@ function update(dt){
   }
  }
  if(warning){warning.time-=dt;if(warning.time<=0){
-  if(Math.abs(player.x-warning.x)<1.1){const loss=Math.min(player.team-1,7+boss.phase*3+stage);player.team-=loss;player.hp-=12+boss.phase*4+stage;text('-'+Math.ceil(loss),player.x,1.5,player.z,'#ff8b98');burst(player.x,1,player.z,C.redLight,22);if(player.hp<=0||player.team<=1)lose()}
+  if(Math.abs(player.x-warning.x)<1.1){const loss=Math.min(player.team-1,7+boss.phase*3+stage);player.team-=loss;player.hp-=12+boss.phase*4+stage;text('-'+Math.ceil(loss),player.x,1.5,player.z,'#ff8b98');burst(player.x,1,player.z,C.redLight,22);flash('hurt');cue(130,.19,'sawtooth',.05);if(player.hp<=0||player.team<=1)lose()}
   warning=null;
  }}
  shotClock-=dt;
  if(shotClock<=0){shotClock=.13;const target=pickTarget();if(target){
-  const dps=(13+player.team*.50+player.weapon*11+player.drone*7)*player.power;
+  const dps=(13+player.team*.50+player.weapon*11+player.drone*7)*player.power*(1+Math.min(combo,20)*.016);
   damage(target,dps*.13);
   for(let i=0;i<Math.min(5,1+Math.floor(player.team/20));i++)sparks.push({x:player.x+rnd(-.4,.4),y:1.0,z:player.z-1.3,vx:(target.x-player.x)*7+rnd(-.25,.25),vy:rnd(-.6,.4),vz:(target.z-player.z)*.56,life:.13,color:C.cyan,bolt:true,tx:target.x,tz:target.z});
   }
  }
+ supportFire(dt);
  for(const s of sparks){s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;s.vy-=10*dt;s.life-=dt}
  sparks=sparks.filter(s=>s.life>0);
  for(const tt of texts){tt.y+=dt*1.8;tt.life-=dt}texts=texts.filter(tt=>tt.life>0);
@@ -476,7 +509,9 @@ function drawCrate(e){
  const frac=clamp(e.hp/e.maxHp,0,1);
  box(e.x,1.75,e.z,1.55,.12,.12,C.gun);
  box(e.x-.775*(1-frac),1.77,e.z-.004,1.55*frac,.14,.13,C.cyan);
- if(e.reward==='drone'){
+ if(e.reward==='heli'){sphere(e.x,2.06,e.z,.83,.34,.50,C.heli);box(e.x,2.30,e.z,1.3,.06,.08,C.gun)}
+ else if(e.reward==='turret'){cyl(e.x,1.96,e.z,.67,.47,.67,C.blueDark);box(e.x,2.21,e.z-.35,.18,.18,1.15,C.gun)}
+ else if(e.reward==='drone'){
   cyl(e.x,1.75,e.z,.50,.34,.50,C.blueLight);box(e.x,1.93,e.z,1.20,.055,.10,C.gun);
  }else if(e.reward==='weapon'){box(e.x,1.95,e.z,1.10,.13,.31,C.gun);box(e.x+.32,1.82,e.z-.22,.23,.34,.56,C.blueLight)}
  else sphere(e.x,1.93,e.z,.48,.48,.48,C.blueLight);
@@ -503,6 +538,25 @@ function drawBoss(b){
  box(x,2.95,z-1.52,1.60,.27,.2,phase>=3?C.eye:C.bossDark);
  if(phase>=2){for(const sign of [-1,1])cyl(x+sign*1.16,4.0,z-.13,.24,.83,.24,C.eye,sign*.5)}
 }
+function drawSupport(){
+ if(!player)return;
+ for(let i=0;i<player.heli;i++){
+  const side=i%2?1:-1,x=clamp(player.x+side*2.1,-3.25,3.25),z=player.z-1.3+Math.sin(walk*1.5+i)*.38;
+  const y=4.0+Math.sin(walk*4+i)*.15,spin=walk*38+i;
+  sphere(x,y,z,1.05,.45,.66,C.heli);sphere(x,y+.04,z-.24,.62,.26,.35,C.heliDark);
+  box(x,y+.06,z+.65,.19,.17,1.30,C.heliDark);box(x,y+.11,z+1.25,.68,.095,.13,C.heli);
+  box(x,y+.37,z,.09,.26,.09,C.gun);
+  box(x,y+.53,z,2.50,.035,.095,C.gun,spin);box(x,y+.53,z,.095,.035,2.5,C.heli,spin);
+  for(const dx of [-.32,.32]){box(x+dx,y-.36,z,.055,.08,1.15,C.gun);box(x+dx,y-.27,z-.4,.055,.25,.055,C.heliDark);box(x+dx,y-.27,z+.4,.055,.25,.055,C.heliDark)}
+  cyl(x,y-.25,z-.27,.18,.19,.18,C.rocket);
+ }
+ for(let i=0;i<player.turret;i++){
+  const side=i%2?1:-1,x=clamp(player.x+side*.95,-3.42,3.42),z=player.z+1.10;
+  cyl(x,.42,z,.72,.48,.72,C.blueDark);cyl(x,.82,z,.50,.39,.50,C.heli);
+  box(x,1.02,z-.42,.15,.16,.94,C.gun);box(x,1.02,z-.94,.22,.20,.20,C.gold);
+  sphere(x,1.06,z,.18,.15,.19,C.cyan);
+ }
+}
 function squad(){
  const n=Math.min(46,Math.floor(player.team)),cols=Math.min(8,Math.ceil(Math.sqrt(n*1.7))),rows=Math.ceil(n/cols);
  for(let i=0;i<n;i++){
@@ -522,7 +576,7 @@ function render(){
   for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)}
   if(boss&&!boss.used)drawBoss(boss);
   if(warning){box(warning.x,.17,player.z-.25,2.0,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx,.20,player.z-.25,.055,.05,6.8,C.eye)}
-  squad();
+  squad();drawSupport();
   for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)}
  }
  flush();
@@ -533,7 +587,7 @@ function render(){
  }else if(e.kind==='crate'){
   const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(String(Math.ceil(Math.max(0,e.hp))),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);
  }}
- for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font='900 23px system-ui';fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
+ for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font='1000 '+(tt.msg.includes('CRIT')?25:19)+'px system-ui';fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
 }
 function tag(value,x,y,color,bg,scale){
  const sz=clamp(18*scale,12,30);fx.save();fx.font=`900 ${sz}px system-ui`;fx.textAlign='center';const w=fx.measureText(value).width+14,h=sz+10;
@@ -546,6 +600,9 @@ function updateHUD(){
  $('hp-val').textContent=String(Math.max(0,Math.ceil(player.hp)));
  $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%';
  $('boss-hud').style.display=boss&&!boss.used?'block':'none';
+ $('combo-val').textContent=combo+' ×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
+ $('support-hud').textContent='🚁 '+player.heli+'　🔧 '+player.turret+'　✦ '+player.drone;
+ impactFlash.style.opacity=flashTime>0?'1':'0';
  if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent='PHASE '+boss.phase}
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
@@ -559,10 +616,11 @@ for(const canvas of [glCanvas,fxCanvas]){
 document.addEventListener('keydown',e=>{if(!player)return;if(e.key==='ArrowLeft'||e.key==='a')player.tx=clamp(player.tx-.65,-3.55,3.55);if(e.key==='ArrowRight'||e.key==='d')player.tx=clamp(player.tx+.65,-3.55,3.55);if(e.key===' '&&mode==='playing')togglePause()});
 function togglePause(){if(mode==='playing'){mode='paused';show(`<div class="eyebrow">PAUSE</div><h1>一時停止</h1><p>続きから再開できるよ。</p><button class="cta" id="resume">▶ 再開</button>`);$('resume').onclick=togglePause;$('pause').textContent='▶'}else if(mode==='paused'){mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ'}}
 $('pause').onclick=togglePause;
+$('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'♪';$('audio').setAttribute('aria-label',soundOn?'効果音をオフにする':'効果音をオンにする');if(soundOn)cue(840,.12)};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')togglePause()});
 // backdrop actors on menu, real gameplay starts only from Start
-player={x:0,tx:0,z:5.3,team:26,weapon:2,drone:1,hp:100,maxHp:100};
-entities=[{kind:'gate',x:2.2,z:-19,y:0,length:8.5,gain:28,taken:0,used:false},{kind:'crate',x:-2.2,z:-13,hp:82,maxHp:82,reward:'weapon',hit:0,used:false},{kind:'mob',x:0,z:-24,hp:120,maxHp:120,n:22,seed:2,used:false,hit:0}];
+player={x:0,tx:0,z:5.3,team:26,weapon:2,drone:1,heli:1,turret:1,hp:100,maxHp:100};
+entities=[{kind:'gate',x:2.2,z:-19,y:0,length:8.5,gain:28,taken:0,used:false},{kind:'crate',x:-2.2,z:-13,hp:82,maxHp:82,reward:'heli',hit:0,used:false},{kind:'mob',x:0,z:-24,hp:120,maxHp:120,n:22,seed:2,used:false,hit:0}];
 boss={kind:'boss',x:0,z:-39,hp:1580,maxHp:1580,phase:1,hit:0,used:false,entered:false};
 menu();requestAnimationFrame(frame);
 })();
