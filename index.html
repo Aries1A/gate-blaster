@@ -319,7 +319,31 @@ function win(){
  const colors=['#ffd65c','#63ffe8','#ff617b','#70abff'];
  const bits=Array.from({length:44},(_,i)=>'<i style="--x:'+((i*37)%100)+'%;--d:'+(2.1+(i%5)*.45)+'s;--delay:'+(-(i%7)*.42)+'s;--s:'+((i%2?-1:1)*(18+i%24))+'vw;--c:'+colors[i%4]+'"></i>').join('');
  show('<div class="victory">'+bits+'</div><div class="eyebrow">✦ LEGENDARY VICTORY ✦</div><h1>TITAN <em>CRUSHED!</em></h1><p>大ボス撃破！連続撃破と支援兵器で次へ進もう。</p><div class="stats"><div class="stat"><strong>'+Math.ceil(player.team)+'</strong><small>生存部隊</small></div><div class="stat"><strong>'+kills+'</strong><small>撃破数</small></div><div class="stat"><strong>'+maxCombo+'×</strong><small>最大コンボ</small></div></div><button class="cta" id="next">▶ 次のステージへ</button><div class="mini">武器 LV.'+player.weapon+' / 🚁 '+player.heli+' / 🔧 '+player.turret+'</div>');
- $('next').onclick=()=>{stage++;start()};
+  const pool=[
+  {id:'power',icon:'💥',title:'火力増強 +25%',desc:'直進弾と支援兵器のダメージを強化'},
+  {id:'team',icon:'👥',title:'初期部隊 +8',desc:'次ステージ以降の初期人数を増やす'},
+  {id:'weapon',icon:'🔫',title:'武器 LV +1',desc:'初期武器を強化'},
+  {id:'rate',icon:'⚡',title:'連射速度 +20%',desc:'直進弾の連射間隔を短縮'},
+  {id:'hp',icon:'❤️',title:'最大HP +35',desc:'ボスのパンチに耐えやすくなる'},
+  {id:'armor',icon:'🛡️',title:'被害軽減 +15%',desc:'ボスのパンチで失う人数を減らす'},
+  {id:'heli',icon:'🚁',title:'攻撃ヘリ +1',desc:'支援機を獲得（最大2機）'},
+  {id:'turret',icon:'🔧',title:'自動砲台 +1',desc:'支援砲台を追加（最大2基）'}
+ ].filter(o=>o.id!=='heli'||runBuild.heli<2).filter(o=>o.id!=='turret'||runBuild.turret<2);
+ const choices=[];while(choices.length<3&&pool.length)choices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+ const cards=choices.map(o=>'<button class="upgrade" data-up="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('');
+ panel.innerHTML=panel.innerHTML.replace('<button class="cta" id="next">▶ 次のステージへ</button>','<p>次のステージに持ち越す強化を<b>ひとつ選ぼう！</b></p><div class="upgrades">'+cards+'</div>');
+ panel.querySelectorAll('[data-up]').forEach(btn=>btn.onclick=()=>{
+  const id=btn.dataset.up;
+  if(id==='power')runBuild.power*=1.25;
+  if(id==='team')runBuild.team+=8;
+  if(id==='weapon')runBuild.weapon=Math.min(9,runBuild.weapon+1);
+  if(id==='rate')runBuild.rate*=1.2;
+  if(id==='hp')runBuild.maxHp+=35;
+  if(id==='armor')runBuild.armor=Math.min(.6,runBuild.armor+.15);
+  if(id==='heli')runBuild.heli=Math.min(2,runBuild.heli+1);
+  if(id==='turret')runBuild.turret=Math.min(2,runBuild.turret+1);
+  cue(1000,.20);stage++;start();
+ });
 }
 function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>人数ゲートや強化コンテナを狙い、<br>ボスの赤い攻撃予告から逃げよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 function doSpawn(e){
