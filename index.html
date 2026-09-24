@@ -1682,6 +1682,30 @@ function render(){
    for(let i=-3;i<=3;i++)box(bossSiege.x,.23,player.z+i*.84,w*1.55,.025,.085,i%2?C.warn:C.armorHi);
    if(boss&&!boss.used)sphere(boss.x,5.7,boss.z-1.2,.65,.65,.65,C.magenta);
   }
+  // Secondary boss projectile fan and the locked-on laser are fully visible.
+  for(const h of bossHazards){
+   if(h.kind==='orb'){
+    const col=h.pattern==='crusher'?C.warn:h.pattern==='beetle'?C.magenta:C.rocket;
+    sphere(h.x,h.y,h.z,.30,.30,.39,col);
+    sphere(h.x,h.y,h.z-.12,.13,.13,.18,C.armorHi);
+    soft(h.x,h.y,h.z-.44,.10,.12,.66,col);
+    sphere(h.x,.18,h.z,.35,.035,.35,C.shadow);
+   }else{
+    const charged=h.time>0,hot=Math.sin(walk*18)>0;
+    const col=charged?(hot?C.warn:C.magenta):C.armorHi;
+    box(h.x,.19,player.z-1.25,h.width*2,.025,6.35,col);
+    for(const side of [-1,1])box(h.x+side*h.width,.22,player.z-1.25,.055,.05,6.30,C.magenta);
+    for(let i=-3;i<=3;i++)box(h.x,.23,player.z+i*.87,h.width*1.75,.025,.11,i%2?C.warn:C.white);
+    if(!charged&&h.active>0){
+     const bx=h.bossRef&&!h.bossRef.used?h.bossRef.x:h.x;
+     const bz=h.bossRef&&!h.bossRef.used?h.bossRef.z:player.z-8;
+     const dx=h.x-bx,dz=player.z-bz,len=Math.hypot(dx,dz);
+     soft((h.x+bx)/2,1.75,(player.z+bz)/2,.30,.30,len,C.magenta,Math.atan2(dx,dz));
+     soft(h.x,1.25,player.z-.75,h.width*1.35,2.3,.36,C.armorHi);
+     sphere(h.x,1.75,player.z,.45,.46,.45,C.warn);
+    }
+   }
+  }
   squad();drawSupport();
   if(muzzleTime>0){
    const squadPositions=formation(),n=Math.min(7,squadPositions.length),bright=muzzleTime/.09;
@@ -1717,6 +1741,16 @@ function render(){
    }
   }
 } else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
+ for(const orb of bossHazards){
+  if(orb.kind!=='orb')continue;
+  const p=project(orb.x,orb.y,orb.z);if(!p)continue;
+  fx.save();fx.globalCompositeOperation='lighter';
+  const radius=24*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);
+  g.addColorStop(0,'rgba(255,255,255,.9)');
+  g.addColorStop(.35,'rgba(255,145,92,.8)');
+  g.addColorStop(1,'rgba(255,62,90,0)');
+  fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore();
+ }
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
  for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
  for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('✦')?23:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
