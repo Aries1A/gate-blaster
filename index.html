@@ -484,7 +484,15 @@ function reset(){
  $('stage-val').textContent=String(stage).padStart(2,'0'); announce(fever?'🔥 FEVER!':'STAGE '+stage+' '+stageModifier().name.split(' ')[0],1.5);
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;
- if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12);if(fever)sfx('fever')}
+ if(soundOn){
+   try{
+    audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();
+    if(audioContext.state==='running'){if(fever)sfx('fever')}
+    else audioContext.resume().then(()=>{if(mode==='playing'&&fever)sfx('fever')}).catch(()=>{});
+   }catch(e){soundOn=false}
+  }
+  cue(780,.12)
+ }
 function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 
@@ -963,7 +971,7 @@ for(const canvas of [glCanvas,fxCanvas]){
 document.addEventListener('keydown',e=>{if(!player)return;if(e.key==='ArrowLeft'||e.key==='a')player.tx=clamp(player.tx-.65,-3.55,3.55);if(e.key==='ArrowRight'||e.key==='d')player.tx=clamp(player.tx+.65,-3.55,3.55);if(e.key===' '&&mode==='playing')togglePause()});
 function togglePause(){if(mode==='playing'){mode='paused';show(`<div class="eyebrow">Ⅱ</div><h1>PAUSE</h1><button class="cta" id="resume">▶ RESUME</button>`);$('resume').onclick=togglePause;$('pause').textContent='▶'}else if(mode==='paused'){mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ'}}
 $('pause').onclick=togglePause;
-$('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'♪';$('audio').setAttribute('aria-label',soundOn?'音楽と効果音をオフにする':'音楽と効果音をオンにする');if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){}musicClock=0;cue(840,.12)}};
+$('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'🔇';$('audio').setAttribute('aria-label',soundOn?'音楽と効果音をオフにする':'音楽と効果音をオンにする');if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){}musicClock=0;cue(840,.12)}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')togglePause()});
 $('audio').classList.add('on');
 // backdrop actors on menu, real gameplay starts only from Start
