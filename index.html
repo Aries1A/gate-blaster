@@ -660,7 +660,8 @@ function stageClear(){
   {id:'turret',icon:'🔧',title:'砲台 +1',desc:'🔧 +1'}
  ].filter(o=>o.id==='drone'?runBuild.drone<4:o.id==='heli'?runBuild.heli<2:runBuild.turret<2);
  const choose=list=>list[Math.floor(Math.random()*list.length)];
- const options=[choose(offense),choose(survival),choose(support.length?support:offense.filter(o=>o.id!==offense[0].id))];
+ const attackChoice=choose(offense);
+ const options=[attackChoice,choose(survival),choose(support.length?support:offense.filter(o=>o.id!==attackChoice.id))];
  show('<div class="eyebrow">STAGE '+stage+' CLEAR</div>'+stagePath(stage,stage+1)+'<h1>✦ <em>CLEAR!</em></h1>'+campaignStats()+
  '<div class="upgrades">'+options.map(o=>'<button class="upgrade" data-up="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
  panel.querySelectorAll('[data-up]').forEach(btn=>btn.onclick=()=>{
