@@ -532,7 +532,7 @@ function closeSoundSettings(){
  $('settings-overlay').classList.add('off');saveSoundSettings();
 }
 
-let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,lastStreamHit=-100,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false,rushIndex=0,rushStarted=false,rushDelay=0;
+let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,lastStreamHit=-100,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false,rushIndex=0,rushStarted=false,rushDelay=0,rushBosses=[],bossHazards=[];
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
@@ -556,9 +556,9 @@ function stagePath(done=0,active=Math.min(5,done+1)){
  return '<div class="stage-path" role="img" aria-label="全5ステージの進行状況">'+items.join('')+'</div>';
 }
 function bossRushList(){return [
- {id:'beetle',factor:.50},
- {id:'crusher',factor:.57},
- {id:'hydra',factor:.65}
+ {id:'beetle',factor:.55},
+ {id:'crusher',factor:.62},
+ {id:'hydra',factor:.70}
 ]}
 function bossByType(id){return [1,2,3,4].map(i=>bossProfile(i)).find(b=>b.id===id)||bossProfile(stage)}
 function fieldOptionPool(){
@@ -721,7 +721,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];bossIntro.classList.remove('show');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;rushBosses=[];bossHazards=[];fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];bossIntro.classList.remove('show');
  $('game').dataset.stage=String(stage);
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
@@ -819,16 +819,23 @@ function stageClear(){
   cue(1000,.20);stage++;start();
  });
 }
-function launchRushBoss(){
- const parts=bossRushList(),part=parts[rushIndex];
- if(!part||mode!=='playing')return;
- rushIndex++;
- const hp=Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*part.factor);
- doSpawn({kind:'boss',when:t,bossType:part.id,rushPart:rushIndex,hp});
- announce('👑 '+rushIndex+'/'+parts.length,1.8);
+function activeBosses(){
+ return rushStarted?rushBosses.filter(b=>!b.used):boss&&!boss.used?[boss]:[];
 }
+function launchRushBoss(){
+ if(mode!=='playing'||rushIndex)return;
+ const parts=bossRushList();
+ boss=null;rushBosses=[];
+ for(let i=0;i<parts.length;i++){
+  const part=parts[i],hp=Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*part.factor);
+  doSpawn({kind:'boss',when:t,bossType:part.id,rushPart:i+1,hp});
+ }
+ rushIndex=parts.length;
+ announce('👑 '+parts.length+' BOSSES!',1.8);
+}
+
 function finalBuildChoice(){
- rushStarted=true;mode='final-upgrade';boss=null;bossSiege=null;warning=null;
+ rushStarted=true;mode='final-upgrade';boss=null;rushBosses=[];bossHazards=[];bossSiege=null;warning=null;
  enemyShots=[];bullets=[];entities=[];streams=[];streamGroups={};fieldChoicePending=false;
  cue(960,.22,'triangle',.06);
  const options=[
@@ -836,7 +843,7 @@ function finalBuildChoice(){
   {id:'supply',icon:'🛡️',title:'補給',desc:'人数 +14 · HP +40'},
   {id:'support',icon:'🚁',title:'支援強化',desc:'自動攻撃 + 随伴ドローン'}
  ];
- show('<div class="eyebrow">👑 FINAL BUILD</div>'+stagePath(4,5)+'<h1>BOSS <em>RUSH!</em></h1><div class="final-banner">3 BOSSES · 1 BUILD</div>'+
+ show('<div class="eyebrow">👑 FINAL BUILD</div>'+stagePath(4,5)+'<h1>BOSS <em>RUSH!</em></h1><div class="final-banner">3 BOSSES AT ONCE · 1 BUILD</div>'+
  '<div class="upgrades">'+options.map(o=>'<button class="upgrade" data-final="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
  panel.querySelectorAll('[data-final]').forEach(btn=>btn.onclick=()=>{
   if(mode!=='final-upgrade')return;
@@ -866,18 +873,9 @@ function win(){
  if(mode!=='playing')return;
  if(stage<5){stageClear();return}
  if(!rushStarted){finalBuildChoice();return}
- if(rushIndex<bossRushList().length){
-  // Short resupply and distinct new boss, within stage 5.
-  boss=null;bossSiege=null;warning=null;enemyShots=[];bullets=[];entities=[];streams=[];streamGroups={};fieldChoicePending=false;
-  player.hp=Math.min(player.maxHp,player.hp+9);
-  player.team+=4;
-  rushDelay=1.6;
-  cue(960,.22,'triangle',.05);
-  announce('👑 '+(rushIndex+1)+'/'+bossRushList().length,1.45);
-  return;
- }
- campaignVictory();
+ if(activeBosses().length===0)campaignVictory();
 }
+
 function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage} / 5</div>${stagePath(stage-1,stage)}<h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best} / 5</div>`);$('retry').onclick=beginRun}
 
 function doSpawn(e){
@@ -898,9 +896,12 @@ function doSpawn(e){
  }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,nextPanel:0,length:8.5,used:false});
  else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
  else if(e.kind==='boss'){
-  const bp=bossByType(e.bossType);
-  boss={kind:'boss',rushPart:e.rushPart||0,bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon+(e.rushPart?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,used:false};
-  introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${boss.name}</b>`;
+  const bp=bossByType(e.bossType),part=e.rushPart||0;
+  const anchorX=part?[-2.45,0,2.45][part-1]:0;
+  const spawned={kind:'boss',rushPart:part,bossType:e.bossType||bp.id,name:bp.name,x:anchorX,anchorX,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon+(part?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,specialClock:part?2+part*.83:2.9,used:false};
+  if(part){rushBosses.push(spawned);if(!boss)boss=spawned}
+  else boss=spawned;
+  introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${part?'TRIPLE THREAT':boss.name}</b>`;
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);pulse(boss.x,3.0,boss.z,'#ffc565',.72);
  }
 }
@@ -964,7 +965,20 @@ function damage(e,value,source='rifle',showHit=true){
    }
    if(credit){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
   }
-  if(e.kind==='boss')win();
+  if(e.kind==='boss'){
+   if(e.rushPart){
+    bossHazards=bossHazards.filter(h=>h.owner!==e.rushPart);
+    if(bossSiege&&bossSiege.owner===e.rushPart)bossSiege=null;
+    if(warning&&warning.owner===e.rushPart)warning=null;
+    boss=activeBosses()[0]||null;
+    const remaining=activeBosses().length;
+    if(remaining){
+     announce('👑 '+remaining+' REMAIN',1.15);
+     cue(920,.26,'triangle',.065);
+     player.hp=Math.min(player.maxHp,player.hp+7);player.team+=2;
+    }else campaignVictory();
+   }else win();
+  }
  }
  return {actual,crit};
 }
@@ -976,13 +990,13 @@ function pickTarget(){
   const sc=e.z*.22-Math.abs(e.x-player.x)*1.8+typeBias;
   if(sc>score){score=sc;result=e}
  }
- if(boss&&!boss.used){const sc=7+boss.z*.12-Math.abs(boss.x-player.x);if(sc>score)result=boss}
+ for(const b of activeBosses()){const sc=7+b.z*.12-Math.abs(b.x-player.x);if(sc>score){score=sc;result=b}}
  return result;
 }
 function supportTarget(){
  const mobs=entities.filter(e=>e.kind==='mob'&&!e.used&&e.z>-27&&e.z<player.z+.2);
  mobs.sort((a,b)=>b.z-a.z);
- return mobs[0]||(boss&&!boss.used?boss:null);
+ return mobs[0]||activeBosses().sort((a,b)=>b.z-a.z)[0]||null;
 }
 function supportFire(dt){
  if(!player.heli&&!player.turret)return;
@@ -1051,7 +1065,7 @@ function updateBossSiege(dt){
    const delay=id==='crusher'?1.12:id==='beetle'?.76:id==='hydra'?.94:.92;
    boss.siegeCount=(boss.siegeCount||0)+1;
    const offset=id==='hydra'?(boss.siegeCount%2?-.30:.30):id==='beetle'?rnd(-.16,.16):0;
-   bossSiege={x:clamp(player.x+offset,-3.25,3.25),width,time:delay,pattern:id};
+   bossSiege={x:clamp(player.x+offset,-3.25,3.25),width,time:delay,pattern:id,owner:boss.rushPart||0};
    boss.siegeClock=Math.max(2.45,(id==='beetle'?2.72:id==='crusher'?3.68:id==='hydra'?3.14:3.32)-boss.phase*.12-stage*.035);
    announce(id==='crusher'?'☄!':id==='beetle'?'⚡!':id==='hydra'?'☄!':'☄!',.75);
    cue(230,.21,'sawtooth',.035);
@@ -1081,7 +1095,7 @@ function update(dt){
   t+=dt;walk+=dt;music(dt);
  if(rushDelay>0){
   rushDelay=Math.max(0,rushDelay-dt);
-  if(rushDelay<=0&&rushStarted&&!boss&&rushIndex<bossRushList().length)launchRushBoss();
+  if(rushDelay<=0&&rushStarted&&rushIndex===0)launchRushBoss();
  }
  if(player.overdrive>0)player.overdrive=Math.max(0,player.overdrive-dt);
  if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
@@ -1089,7 +1103,7 @@ function update(dt){
  if(introTime>0){introTime-=dt;if(introTime<=0)bossIntro.classList.remove('show')}
  if(muzzleTime>0)muzzleTime=Math.max(0,muzzleTime-dt);
  for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
- if(boss&&boss.labelTime>0)boss.labelTime-=dt;
+ for(const b of activeBosses())if(b.labelTime>0)b.labelTime-=dt;
  while(eventIndex<waveEvents.length&&waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
  // Spawn a whole row together, then follow it quickly with the next row.
  // This makes a broad continuous band rather than a narrow file of individual enemies.
@@ -1196,7 +1210,7 @@ function update(dt){
     const telegraph=id==='crusher'?1.18:id==='beetle'?.59:id==='hydra'?.77:.86;
     boss.attackCount=(boss.attackCount||0)+1;
     const aim=id==='hydra'?(boss.attackCount%2? -2.25:2.25):id==='beetle'?clamp(player.tx*.76+boss.x*.24,-2.8,2.8):boss.x;
-    warning={x:aim,time:telegraph,boss:true,width,pattern:id};
+    warning={x:aim,time:telegraph,boss:true,width,pattern:id,owner:boss.rushPart||0};
     boss.attack=Math.max(1.55,(id==='beetle'?2.7:id==='crusher'?3.7:3.2)-boss.phase*.28-stage*.05);
     announce(id==='hydra'?'⚠ ↔':id==='beetle'?'⚠!':id==='crusher'?'⚠!':'⚠!',.7);cue(160,.18,'sawtooth',.04);
    }
@@ -1235,7 +1249,12 @@ function update(dt){
    const score=dz+(e.streamId?dx*.32:0);
    if(score<near){near=score;hit=e}
   }
-  if(boss&&!boss.used&&Math.abs(b.x-boss.x)<1.7&&boss.z<=oldZ+1.0&&boss.z>=b.z-1.0){if(boss.z-oldZ<near)hit=boss}
+  for(const target of activeBosses()){
+   const radius=target.rushPart?1.06:1.7;
+   if(Math.abs(b.x-target.x)<radius&&target.z<=oldZ+1.0&&target.z>=b.z-1.0){
+    if(target.z-oldZ<near){near=target.z-oldZ;hit=target}
+   }
+  }
   if(hit){
    if(hit.streamId){
     // One visible shot sweeps across up to four neighbors in the same front
@@ -1464,6 +1483,12 @@ function drawCrate(e){
 }
 
 function drawBoss(b){
+ const scale=b.rushPart?.57:1;
+ const tx=(v)=>b.x+(v-b.x)*scale, tz=(v)=>b.z+(v-b.z)*scale;
+ const box=(x,y,z,sx,sy,sz,col,ry=0)=>add('box',tx(x),y*scale,tz(z),sx*scale,sy*scale,sz*scale,col,ry);
+ const soft=(x,y,z,sx,sy,sz,col,ry=0)=>add('soft',tx(x),y*scale,tz(z),sx*scale,sy*scale,sz*scale,col,ry);
+ const sphere=(x,y,z,sx,sy,sz,col)=>add('sphere',tx(x),y*scale,tz(z),sx*scale,sy*scale,sz*scale,col);
+ const cyl=(x,y,z,sx,sy,sz,col,ry=0)=>add('cyl',tx(x),y*scale,tz(z),sx*scale,sy*scale,sz*scale,col,ry);
  const x=b.x,z=b.z,phase=b.phase,hit=b.hit>0,c1=hit?C.white:(b.bossType==='beetle'?C.orange:b.bossType==='crusher'?C.violet:b.bossType==='hydra'?C.teal:C.boss),c2=b.bossType==='beetle'?C.gold:b.bossType==='crusher'?C.magenta:b.bossType==='hydra'?C.cyan:C.bossLight,cd=b.bossType==='beetle'?[.40,.18,.10,1]:b.bossType==='crusher'?[.27,.18,.43,1]:b.bossType==='hydra'?[.07,.28,.30,1]:C.bossDark;
  box(x,.01,z,2.6,.02,1.8,C.shadow);
  if(b.bossType==='beetle'){ sphere(x,2.3,z,2.8,1.4,2.2,c1); sphere(x,2.5,z-.5,2.2,1.2,1.6,c2); for(const sgn of [-1,1]){cyl(x+sgn*1.45,1.15,z+.2,.35,1.1,.35,cd,sgn*.5); box(x+sgn*2.0,1.0,z-.3,.25,.25,1.3,c2,sgn*.6); sphere(x+sgn*1.0,3.0,z-1.2,.45,.45,.45,C.eye); box(x+sgn*1.8,2.4,z-1.0,.18,.18,1.6,c2,sgn*.4)} box(x,1.05,z+1.5,.35,.25,1.3,cd); }
@@ -1561,7 +1586,7 @@ function squad(){
 
 function render(){
  gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera);world();gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){
+ if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} for(const active of activeBosses())drawBoss(active); if(warning){
    const w=warning.width||2.25,flashWarn=Math.sin(walk*17)>0;
    box(warning.x,.17,player.z-.25,w*2,.02,6.8,flashWarn?[1,.31,.21,1]:[.90,.18,.29,1]);
    for(const sign of [-1,1])box(warning.x+sign*w,.20,player.z-.25,.085,.045,6.8,C.warn);
@@ -1635,7 +1660,14 @@ function updateHUD(){
  const pips=$('field-xp-pips').children;
  for(let i=0;i<pips.length;i++)pips[i].classList.toggle('on',i<fieldPicks);
  impactFlash.style.opacity=flashTime>0?'1':'0';
- if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':boss.weakTime>0?'⚡':['I','II','III'][boss.phase-1];$('boss-name').textContent=(boss.rushPart?'👑 '+rushIndex+'/'+bossRushList().length+' ':'')+boss.name}
+ if(boss&&!boss.used){
+  const alive=activeBosses(),aggregate=rushStarted&&alive.length;
+  const hp=aggregate?alive.reduce((v,b)=>v+b.hp,0):boss.hp;
+  const maximum=aggregate?rushBosses.reduce((v,b)=>v+b.maxHp,0):boss.maxHp;
+  $('boss-fill').style.width=(clamp(hp/maximum,0,1)*100)+'%';
+  $('phase-val').textContent=bossSiege?'☄':boss.weakTime>0?'⚡':['I','II','III'][boss.phase-1];
+  $('boss-name').textContent=aggregate?'👑 BOSS RUSH · '+alive.length+'体':boss.name;
+ }
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
 function pointerX(e){const r=glCanvas.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width*2-1,-1,1)}
