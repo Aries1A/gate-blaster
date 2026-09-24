@@ -886,7 +886,7 @@ function doSpawn(e){
   const bp=bossByType(e.bossType);
   boss={kind:'boss',rushPart:e.rushPart||0,bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon+(e.rushPart?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,used:false};
   introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${boss.name}</b>`;
-  bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);
+  bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);pulse(boss.x,3.0,boss.z,'#ffc565',.72);
  }
 }
 function burst(x,y,z,col,n=12){for(let i=0;i<n;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col})}
@@ -917,7 +917,7 @@ function bossCounter(){
  if(!boss||boss.used||mode!=='playing'||t-boss.lastCounter<2.1)return;
  boss.lastCounter=t;
  const strike=boss.maxHp*.03;
- burst(boss.x,3.2,boss.z,C.spark,22);text('⚡ -'+Math.ceil(strike),boss.x,5.65,boss.z,'#ffef8c',1.1);
+ burst(boss.x,3.2,boss.z,C.spark,22);pulse(boss.x,3.2,boss.z,'#ffed82',.43);text('⚡ -'+Math.ceil(strike),boss.x,5.65,boss.z,'#ffef8c',1.1);
  cue(1100,.16,'triangle',.050);
  damage(boss,strike,'counter');
  if(boss&&!boss.used)boss.weakTime=2.1;
@@ -1106,6 +1106,7 @@ function update(dt){
     if(gain>0){
      e.progress-=gain;e.taken+=gain;player.team+=gain;
      text('+'+gain,player.x,1.4,player.z-1.3,'#93fff3',.55);
+     if(e.taken%5<gain)pulse(player.x,1.10,player.z-1.3,'#81ffe9',.23);
      cue(780,.045,'triangle',.012);
     }
    }else e.progress=0;
@@ -1554,11 +1555,17 @@ function squad(){
 
 function render(){
  gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera);world();gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){const w=warning.width||2.25;box(warning.x,.17,player.z-.25,w*2,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx*w,.20,player.z-.25,.055,.05,6.8,C.eye)}
+ if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){
+   const w=warning.width||2.25,flashWarn=Math.sin(walk*17)>0;
+   box(warning.x,.17,player.z-.25,w*2,.02,6.8,flashWarn?[1,.31,.21,1]:[.90,.18,.29,1]);
+   for(const sign of [-1,1])box(warning.x+sign*w,.20,player.z-.25,.085,.045,6.8,C.warn);
+   for(let i=-3;i<=3;i++)box(warning.x,.22,player.z+i*.85,w*1.7,.025,.09,i%2?C.warn:C.armorHi);
+  }
   if(bossSiege){const w=bossSiege.width,hot=Math.sin(walk*23)>0;
    box(bossSiege.x,.18,player.z-.2,w*2,.02,6.25,hot?[1,.16,.34,1]:[.67,.08,.29,1]);
-   for(const dx of [-1,1])box(bossSiege.x+dx*w,.21,player.z-.2,.07,.055,6.25,C.magenta);
-   sphere(boss.x,5.7,boss.z-1.2,.65,.65,.65,C.magenta);
+   for(const dx of [-1,1])box(bossSiege.x+dx*w,.21,player.z-.2,.10,.055,6.25,C.magenta);
+   for(let i=-3;i<=3;i++)box(bossSiege.x,.23,player.z+i*.84,w*1.55,.025,.085,i%2?C.warn:C.armorHi);
+   if(boss&&!boss.used)sphere(boss.x,5.7,boss.z-1.2,.65,.65,.65,C.magenta);
   }
   squad();drawSupport();
   if(muzzleTime>0){
