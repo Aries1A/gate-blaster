@@ -405,7 +405,7 @@ function musicTone(freq,dur,vol,type='triangle',at=0){
  if(!audioContext||!soundOn)return;
  const now=audioContext.currentTime+at,o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);
  if(type==='sine')o.frequency.exponentialRampToValueAtTime(Math.max(38,freq*.57),now+dur);
- a.gain.setValueAtTime(.0001,now);a.gain.linearRampToValueAtTime(vol,now+.009);a.gain.exponentialRampToValueAtTime(.0001,now+dur);
+ a.gain.setValueAtTime(.0001,now);a.gain.linearRampToValueAtTime(Math.min(.2,vol*1.45),now+.009);a.gain.exponentialRampToValueAtTime(.0001,now+dur);
  o.connect(a);a.connect(audioContext.destination);o.start(now);o.stop(now+dur+.025);
 }
 function music(dt){
@@ -432,8 +432,8 @@ function sfx(kind){
  const gap={shot:.10,hit:.13,bossHit:.15,crateHit:.12,kill:.12,fever:.6}[kind]||0;
  if(sfxTimes[kind]!==undefined&&t-sfxTimes[kind]<gap)return;
  sfxTimes[kind]=t;
- if(kind==='shot'){musicTone(player.weapon>=5?495:395,.035,.013,'sawtooth');musicTone(180,.045,.009,'triangle')}
- else if(kind==='hit')musicTone(270,.040,.014,'triangle');
+ if(kind==='shot'){musicTone(player.weapon>=5?495:395,.035,.021,'sawtooth');musicTone(180,.045,.014,'triangle')}
+ else if(kind==='hit')musicTone(270,.040,.022,'triangle');
  else if(kind==='bossHit')musicTone(180,.07,.019,'sawtooth');
  else if(kind==='crateHit')musicTone(520,.045,.024,'square');
  else if(kind==='crateOpen'){musicTone(660,.11,.053,'triangle');musicTone(990,.15,.046,'triangle',.07)}
@@ -811,7 +811,7 @@ function update(dt){
 }
 
 function world(){
- const th=stageTheme(stage||1); gl.clearColor(...th.clear);
+ const base=stageTheme(stage||1),th=fever?{...base,clear:[.98,.78,.43,1],water:[.44,.38,.75,1],stripe:[1,.97,.52,1],banner:[1,.40,.58,1],edge:[1,.86,.40,1]}:base; gl.clearColor(...th.clear);
  box(0,-.58,-20,140,.12,150,th.water);
  for(let i=-8;i<=8;i++){const z=-40+i*7+(walk*1.4)%7; box(-8.9,-.48,z,7.8,.012,.045,[th.water[0]*.8,th.water[1]*.9,th.water[2],1]); box(8.9,-.48,z+2.5,7.8,.012,.045,[th.water[0]*.84,th.water[1],th.water[2]*.96,1]);}
  box(0,-.15,-20,8.8,.45,99,th.floor); box(0,.10,-20,8.45,.055,99,th.top);
