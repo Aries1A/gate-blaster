@@ -631,14 +631,15 @@ function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div
 
 function doSpawn(e){
  if(e.kind==='stream'){
-  // Experimental troop procession: one individually hittable soldier arrives at a
-  // time, ordered in narrow lanes. Original wave HP and its energy credit are shared.
+  // Dense troop bands: rows span the road; every soldier remains individually hittable.
+  // Preserve original wave HP and one kill-energy credit per wave.
   const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
   const total=Math.min(32,Math.max(8,Math.ceil(e.n*a.n*.85)));
   const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
   const id=++streamSerial;
   streamGroups[id]={total,defeated:0,credited:false};
-  streams.push({id,x:e.x,type,total,hp:Math.max(12,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:type==='runner'?.105:.125,clock:0,emitted:0});
+  const columns=Math.min(9,Math.max(6,Math.ceil(Math.sqrt(total*1.75))));
+  streams.push({id,x:e.x,type,total,columns,hp:Math.max(12,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
@@ -806,13 +807,20 @@ function update(dt){
  for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
  if(boss&&boss.labelTime>0)boss.labelTime-=dt;
  while(eventIndex<waveEvents.length&&waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
- // Emit each soldier as an independent target, offset side-to-side in a long queue.
+ // Spawn a whole row together, then follow it quickly with the next row.
+ // This makes a broad continuous band rather than a narrow file of individual enemies.
  for(const line of streams){
   line.clock-=dt;
-  let emittedNow=0;
-  while(line.clock<=0&&line.emitted<line.total&&emittedNow++<2){
-   const i=line.emitted++,x=clamp(line.x+(i%3-1)*.29,-2.85,2.85);
-   entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(i%3)*.10,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%5===0,hit:0,seed:rnd(0,100),used:false});
+  let rowsNow=0;
+  while(line.clock<=0&&line.emitted<line.total&&rowsNow++<2){
+   const count=Math.min(line.columns,line.total-line.emitted);
+   const row=Math.floor(line.emitted/line.columns);
+   const center=clamp(line.x*.22,-.55,.55);
+   for(let c=0;c<count;c++){
+    const i=line.emitted++;
+    const x=clamp(center+(c-(count-1)/2)*.48+(row%2?.12:0),-3.2,3.2);
+    entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(c%2)*.07,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%5===0,hit:0,seed:rnd(0,100),used:false});
+   }
    line.clock+=line.interval;
   }
  }
