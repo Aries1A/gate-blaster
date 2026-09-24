@@ -358,7 +358,7 @@ addEventListener('resize',resize,{passive:true});resize();
 function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[0]+VP[4+i]*q[1]+VP[8+i]*q[2]+VP[12+i];if(o[3]<=0)return null;return{x:screenW*(.5+o[0]/o[3]*.5),y:screenH*(.5-o[1]/o[3]*.5),scale:clamp(16/o[3],.35,2.8)}}
 
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
-let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
+let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0,muzzleTime=0,rings=[];
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0,sfxTimes={};
 let masterVolume=1,bgmVolume=1,seVolume=1,masterBus=null,bgmBus=null,seBus=null,audioCompressor=null,audioChannel='bgm',settingsReturnMode=null,previewClock=-1;
 try{
@@ -613,7 +613,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
@@ -791,13 +791,17 @@ function doSpawn(e){
  }
 }
 function burst(x,y,z,col,n=12){for(let i=0;i<n;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col})}
+function pulse(x,y,z,color='#fff1b0',duration=.38){
+ if(rings.length>20)rings.shift();
+ rings.push({x,y,z,color,life:duration,max:duration});
+}
 function reward(e){
  if(e.reward==='weapon'){player.weapon=Math.min(player.weapon+1,9);announce('🔫 +1',1.25);cue(880,.24,'triangle',.055)}
  if(e.reward==='drone'){player.drone=Math.min(player.drone+1,4);announce('✦ +1',1.25);cue(940,.23,'triangle',.05)}
  if(e.reward==='team'){player.team+=18;announce('👥 +18',1.25);cue(790,.22,'triangle',.052)}
  if(e.reward==='heli'){player.heli=Math.min(player.heli+1,2);announce('🚁 +1',1.65);cue(650,.3,'sawtooth',.05)}
  if(e.reward==='turret'){player.turret=Math.min(player.turret+1,2);announce('🔧 +1',1.65);cue(760,.3,'sawtooth',.05)}
- sfx('pickup');flash();burst(e.x,1.1,e.z,C.gold,26);
+ sfx('pickup');flash();burst(e.x,1.1,e.z,C.gold,26);pulse(e.x,1.35,e.z,'#ffdf7d',.55);
  for(let i=0;i<6;i++)text(['✦','+','★'][i%3],e.x+rnd(-1.2,1.2),rnd(1.4,3),e.z+rnd(-.8,.8),'#ffdd7a',.75);
 }
 function bossShotFloor(b){
@@ -969,6 +973,7 @@ function update(dt){
  if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
  if(flashTime>0){flashTime-=dt;if(flashTime<=0)impactFlash.style.opacity='0'}
  if(introTime>0){introTime-=dt;if(introTime<=0)bossIntro.classList.remove('show')}
+ if(muzzleTime>0)muzzleTime=Math.max(0,muzzleTime-dt);
  for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
  if(boss&&boss.labelTime>0)boss.labelTime-=dt;
  while(eventIndex<waveEvents.length&&waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
@@ -1096,7 +1101,7 @@ function update(dt){
  }}
  if(mode!=='playing')return;
  shotClock-=dt;
- if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);sfx('shot');
+ if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);muzzleTime=.09;sfx('shot');
   const count=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
   const squad=formation(),dmg=(9+player.weapon*5+player.drone*3)*player.power*(1+Math.min(combo,20)*.016);
   for(let i=0;i<count;i++){
@@ -1139,6 +1144,7 @@ function update(dt){
  for(const sp of sparks){sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;sp.z+=sp.vz*dt;sp.vy-=10*dt;sp.life-=dt}
  sparks=sparks.filter(sp=>sp.life>0);
  for(const tt of texts){tt.y+=dt*1.8;tt.life-=dt}texts=texts.filter(tt=>tt.life>0);
+ for(const ring of rings)ring.life-=dt;rings=rings.filter(r=>r.life>0);
  if(noticeTime>0){noticeTime-=dt;if(noticeTime<=0)notice.style.opacity='0'}
  if(fieldChoicePending&&mode==='playing')openFieldChoice();
 }
@@ -1203,7 +1209,7 @@ function world(){
  }
 }
 
-function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1){
+function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1,hit=false){
  // Chunky toy-soldier silhouette: helmet, face, vest, boots, backpack, oversized weapon.
  // The same small mesh set is instanced for the entire crowd.
  const phase=walk*10+seed,step=Math.sin(phase)*.12,arm=Math.sin(phase+PI)*.09;
@@ -1211,7 +1217,7 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1){
  const kind=playerSide?'ally':variant,typ=playerSide?null:mobArchetype(variant);
  const sc=big*(playerSide?(commander?1.12+.025*Math.min(12,level):1):typ.scale/.33);
  const helmet=playerSide?(commander?C.allyGold:C.helmet):typ.body;
- const armor=playerSide?(commander?C.blueDark:C.blue):typ.body;
+ const armor=hit?C.armorHi:playerSide?(commander?C.blueDark:C.blue):typ.body;
  const stripe=playerSide?(commander?C.allyGold:C.blueLight):typ.accent;
  const pant=playerSide?C.blueDark:(variant==='brute'?C.redDark:C.pants);
  const visor=playerSide?C.armorHi:(variant==='runner'?C.warn:typ.visor);
@@ -1277,11 +1283,11 @@ function drawMob(e){
  if(e.streamId){
   const col=mobArchetype(e.mobType);
   if(e.z<-12){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
-  else soldier(e.x,e.z,false,e.seed,.33,e.mobType);
+  else soldier(e.x,e.z,false,e.seed,.33,e.mobType,1,e.hit>0);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-12){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType);}
+ for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-12){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function drawGate(e){
@@ -1428,15 +1434,34 @@ function squad(){
 }
 
 function render(){
- gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera); world();
+ gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera);world();gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
  if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){const w=warning.width||2.25;box(warning.x,.17,player.z-.25,w*2,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx*w,.20,player.z-.25,.055,.05,6.8,C.eye)}
   if(bossSiege){const w=bossSiege.width,hot=Math.sin(walk*23)>0;
    box(bossSiege.x,.18,player.z-.2,w*2,.02,6.25,hot?[1,.16,.34,1]:[.67,.08,.29,1]);
    for(const dx of [-1,1])box(bossSiege.x+dx*w,.21,player.z-.2,.07,.055,6.25,C.magenta);
    sphere(boss.x,5.7,boss.z-1.2,.65,.65,.65,C.magenta);
   }
-  squad();drawSupport(); for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
+  squad();drawSupport();
+  if(muzzleTime>0){
+   const squadPositions=formation(),n=Math.min(7,squadPositions.length),bright=muzzleTime/.09;
+   for(let i=0;i<n;i++){
+    const p=squadPositions[Math.floor((i+.5)*squadPositions.length/n)];
+    const x=p.x+.11,z=p.z-.55;
+    sphere(x,.48,z,.19*bright,.15*bright,.36*bright,C.warn);
+    sphere(x,.48,z-.16,.11*bright,.10*bright,.25*bright,C.armorHi);
+   }
+  }
+  for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
  flush(); fx.clearRect(0,0,screenW,screenH); if(!player)return;
+ // Transient radial flashes stay entirely in the 2D overlay, not expensive geometry.
+ for(const ring of rings){
+  const p=project(ring.x,ring.y,ring.z);if(!p)continue;
+  const progress=1-ring.life/ring.max,radius=(8+42*progress)*p.scale;
+  fx.save();fx.globalAlpha=clamp(ring.life/ring.max,0,1)*.85;
+  fx.strokeStyle=ring.color;fx.lineWidth=Math.max(1,3.2*p.scale)*(1-progress*.45);
+  fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.stroke();fx.restore();
+ }
+
  for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
  for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
