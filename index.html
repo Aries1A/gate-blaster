@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#071725">
+<meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v24</title>
+<title>GATE BLASTER · WEBGL v25</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061521;color:#eef8ff}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#b9eafd;color:#eef8ff}
 #game{position:relative;width:100vw;height:100dvh;touch-action:none;overflow:hidden;user-select:none;-webkit-user-select:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #labels{pointer-events:none;z-index:2}
@@ -200,6 +200,7 @@ uniform vec3 uCam;
 out vec3 vN;
 out vec4 vColor;
 out float vDist;
+out vec3 vWorld;
 void main(){
  mat4 model=mat4(iM0,iM1,iM2,iM3);
  vec4 wp=model*vec4(aPos,1.0);
@@ -207,21 +208,28 @@ void main(){
  vN=normalize(mat3(model)*aNormal);
  vColor=iColor;
  vDist=length(uCam-wp.xyz);
+ vWorld=wp.xyz;
 }`;
 const frag=`#version 300 es
 precision highp float;
 in vec3 vN;
 in vec4 vColor;
 in float vDist;
+in vec3 vWorld;
+uniform vec3 uFogColor;
 out vec4 outColor;
 void main(){
  vec3 n=normalize(vN);
- vec3 sun=normalize(vec3(-0.45,0.92,0.32));
+ vec3 sun=normalize(vec3(-0.50,0.86,0.34));
  float lit=max(dot(n,sun),0.0);
- vec3 col=vColor.rgb*(0.50+0.50*lit);
- col+=vColor.rgb*pow(max(dot(n,normalize(vec3(-0.15,0.78,0.62))),0.0),12.0)*0.14;
- float fog=clamp((vDist-19.0)/51.0,0.0,0.65);
- col=mix(col,vec3(0.11,0.35,0.46),fog);
+ float sky=0.64+0.07*max(n.y,0.0);
+ float rim=pow(1.0-max(dot(n,normalize(vec3(0.1,0.6,0.8))),0.0),3.0);
+ vec3 col=vColor.rgb*(sky+0.39*lit);
+ col+=vec3(0.08,0.13,0.17)*lit*rim;
+ col+=vColor.rgb*pow(max(dot(n,normalize(vec3(-0.15,0.78,0.62))),0.0),18.0)*0.13;
+ float fog=clamp((vDist-20.0)/55.0,0.0,0.69);
+ col=mix(col,uFogColor,fog);
+ col=pow(max(col,vec3(0.0)),vec3(.94));
  outColor=vec4(col,1.0);
 }`;
 const program=gl.createProgram();
@@ -230,6 +238,7 @@ if(!gl.getProgramParameter(program,gl.LINK_STATUS)){throw Error(gl.getProgramInf
 gl.useProgram(program);
 const uVP=gl.getUniformLocation(program,'uVP');
 const uCam=gl.getUniformLocation(program,'uCam');
+const uFogColor=gl.getUniformLocation(program,'uFogColor');
 gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 gl.clearColor(.045,.26,.38,1);
 
@@ -265,6 +274,30 @@ function cylinderMesh(seg=12){
  }
  }return[v,ix];
 }
+function roundedMesh(){
+ // Bevelled cube for toy-style armor, loot cases and architecture.
+ const v=[],ix=[],resolution=4;
+ const faces=[
+  {n:2,sign:1,u:0,w:1},{n:2,sign:-1,u:0,w:1},
+  {n:0,sign:1,u:2,w:1},{n:0,sign:-1,u:2,w:1},
+  {n:1,sign:1,u:0,w:2},{n:1,sign:-1,u:0,w:2}
+ ];
+ for(const f of faces){
+  const off=v.length/6;
+  for(let i=0;i<=resolution;i++)for(let j=0;j<=resolution;j++){
+   const xyz=[0,0,0];xyz[f.n]=f.sign*.5;xyz[f.u]=(j/resolution-.5);xyz[f.w]=(i/resolution-.5);
+   const inner=xyz.map(x=>clamp(x,-.36,.36)),outer=xyz.map((x,k)=>x-inner[k]);
+   const len=Math.hypot(...outer)||1,p=inner.map((x,k)=>x+outer[k]/len*.14);
+   v.push(...p,...outer.map(x=>x/len));
+  }
+  for(let i=0;i<resolution;i++)for(let j=0;j<resolution;j++){
+   const x=off+i*(resolution+1)+j,y=x+resolution+1;
+   if(f.sign>0)ix.push(x,y,x+1,y,y+1,x+1);
+   else ix.push(x,x+1,y,y,x+1,y+1);
+  }
+ }
+ return [v,ix];
+}
 function createMesh(data){
  const [verts,indices]=data,vao=gl.createVertexArray();gl.bindVertexArray(vao);
  const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
@@ -276,7 +309,7 @@ function createMesh(data){
  gl.bindVertexArray(null);
  return{vao,ib,indices:indices.length,instances:[],capacity:800};
 }
-const meshes={box:createMesh(cubeMesh()),sphere:createMesh(sphereMesh()),cyl:createMesh(cylinderMesh())};
+const meshes={box:createMesh(cubeMesh()),sphere:createMesh(sphereMesh()),cyl:createMesh(cylinderMesh()),soft:createMesh(roundedMesh())};
 function add(kind,x,y,z,sx,sy,sz,color,ry=0){
  const out=meshes[kind].instances,co=Math.cos(ry),si=Math.sin(ry);
  // column-major transform, rotate y; nonuniform scale
@@ -285,6 +318,7 @@ function add(kind,x,y,z,sx,sy,sz,color,ry=0){
 const box=(x,y,z,sx,sy,sz,color,ry=0)=>add('box',x,y,z,sx,sy,sz,color,ry);
 const sphere=(x,y,z,sx,sy,sz,color)=>add('sphere',x,y,z,sx,sy,sz,color);
 const cyl=(x,y,z,sx,sy,sz,color,ry=0)=>add('cyl',x,y,z,sx,sy,sz,color,ry);
+const soft=(x,y,z,sx,sy,sz,color,ry=0)=>add('soft',x,y,z,sx,sy,sz,color,ry);
 function flush(){
  for(const mesh of Object.values(meshes)){
   const count=mesh.instances.length/20;if(!count)continue;
@@ -622,7 +656,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v24 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v25 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
