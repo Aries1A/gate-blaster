@@ -377,7 +377,7 @@ function closeSoundSettings(){
  $('settings-overlay').classList.add('off');saveSoundSettings();
 }
 
-let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
@@ -548,11 +548,11 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
- const mob=(when,x,hp,n,type)=>spawn('mob',when,{x,hp,n,mobType:type});
+ const mob=(when,x,hp,n,type)=>spawn('stream',when,{x,hp,n,mobType:type});
  mob(.25,-1.15,mobHp,12,chooseMobType(0)); mob(1.45,1.08,mobHp+10,14,chooseMobType(1));
  choice('route1',2.1,2.25,-2.20,22+stage*2,crateHp,'weapon');
  mob(3.6,-1.85,mobHp+18,16,chooseMobType(2)); mob(4.5,1.55,mobHp+24,17,chooseMobType(3));
@@ -629,7 +629,16 @@ function win(){
 function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage}</div><h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best}</div>`);$('retry').onclick=beginRun}
 
 function doSpawn(e){
- if(e.kind==='mob'){
+ if(e.kind==='stream'){
+  // Experimental troop procession: one individually hittable soldier arrives at a
+  // time, ordered in narrow lanes. Original wave HP and its energy credit are shared.
+  const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
+  const total=Math.min(32,Math.max(8,Math.ceil(e.n*a.n*.85)));
+  const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
+  const id=++streamSerial;
+  streamGroups[id]={total,defeated:0,credited:false};
+  streams.push({id,x:e.x,type,total,hp:Math.max(12,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:type==='runner'?.105:.125,clock:0,emitted:0});
+ }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
@@ -665,7 +674,17 @@ function damage(e,value,source='rifle'){
  if(e.hp<=0){
   e.used=true;burst(e.x,1.1,e.z,e.kind==='crate'?C.gold:C.redLight,e.kind==='boss'?82:26);
   if(e.kind==='crate'){sfx('crateOpen');reward(e)}
-  if(e.kind==='mob'){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
+  if(e.kind==='mob'){
+   const wave=e.streamId?streamGroups[e.streamId]:null;
+   let credit=!e.streamId;
+   if(wave&&!wave.credited){
+    wave.defeated++;
+    if(wave.defeated>=Math.ceil(wave.total*.75)){
+     credit=true;wave.credited=true;delete streamGroups[e.streamId];
+    }
+   }
+   if(credit){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
+  }
   if(e.kind==='boss')win();
  }
 }
@@ -713,7 +732,7 @@ function updateEnemyShots(dt){
  for(const e of entities){
   if(e.used||e.kind!=='mob'||e.z<-18||e.z>player.z-3.7)continue;
   const ranged=e.mobType==='guard'||(mod.id==='crossfire'&&e.mobType==='runner');
-  if(!ranged)continue;
+  if(!ranged||(e.streamId&&!e.rangedEnabled))continue;
   e.fireClock-=dt;
   if(e.fireClock<=0&&enemyShots.length<18){
    e.fireClock=Math.max(1.9,3.3*mod.shot)+rnd(0,.55);
@@ -786,6 +805,17 @@ function update(dt){
  for(const e of entities)if(e.labelTime>0)e.labelTime-=dt;
  if(boss&&boss.labelTime>0)boss.labelTime-=dt;
  while(eventIndex<waveEvents.length&&waveEvents[eventIndex].when<=t)doSpawn(waveEvents[eventIndex++]);
+ // Emit each soldier as an independent target, offset side-to-side in a long queue.
+ for(const line of streams){
+  line.clock-=dt;
+  let emittedNow=0;
+  while(line.clock<=0&&line.emitted<line.total&&emittedNow++<2){
+   const i=line.emitted++,x=clamp(line.x+(i%3-1)*.29,-2.85,2.85);
+   entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(i%3)*.10,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%5===0,hit:0,seed:rnd(0,100),used:false});
+   line.clock+=line.interval;
+  }
+ }
+ streams=streams.filter(line=>line.emitted<line.total);
  player.x+=(player.tx-player.x)*Math.min(1,dt*11);
  for(const e of entities){
   if(e.used)continue;e.z+=e.speed*dt;if(e.hit>0)e.hit-=dt;
@@ -925,6 +955,12 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1){
 }
 
 function drawMob(e){
+ if(e.streamId){
+  const col=mobArchetype(e.mobType);
+  if(e.z<-8){box(e.x,.56,e.z,.24,.72,.28,col.body);sphere(e.x,1.04,e.z,.22,.22,.22,col.accent)}
+  else soldier(e.x,e.z,false,e.seed,.33,e.mobType);
+  return;
+ }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
  for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-8){box(x,.56,z,.24,.72,.28,mobArchetype(e.mobType).body); sphere(x,1.04,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
