@@ -90,6 +90,18 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
 .upgrade{gap:10px;padding:11px 12px}.upgrade .emoji{font-size:26px;width:35px}
 .upgrade b{font-size:15px}.upgrade small{margin-top:2px}.stats{margin:10px 0}
 @media(max-width:360px){.pill{padding:4px 3px;gap:3px}.pill .small{font-size:12px}.pill .big{font-size:14px}.top{gap:3px}#stage{flex-basis:35px}#pause,#audio{width:29px;height:32px;font-size:15px}}
+
+/* Compact sound mixer with touch-friendly native sliders. */
+#settings-overlay{position:absolute;z-index:7;inset:0;display:flex;align-items:center;justify-content:center;background:#061522dd;backdrop-filter:blur(4px);padding:20px;touch-action:auto;pointer-events:auto}
+#settings-overlay.off{display:none}
+.settings-panel{width:min(94vw,390px);max-height:calc(100dvh - 42px);overflow:auto;padding:20px 18px;border-radius:20px;border:1px solid #86dcff66;background:linear-gradient(150deg,#133b54,#071b30);box-shadow:0 15px 55px #000b;text-align:center}
+.settings-panel h2{font-size:25px;margin:7px 0 15px}
+.volume-row{display:grid;grid-template-columns:1fr 55px;gap:0 12px;align-items:center;margin:13px 2px;text-align:left}
+.volume-row label{font-size:15px;font-weight:900}.volume-row output{text-align:right;color:#99fff0;font-weight:950;font-size:14px}
+.volume-row input{grid-column:1/-1;width:100%;height:33px;margin:3px 0 0;accent-color:#72efdf;cursor:pointer;touch-action:pan-x}
+.sound-actions{display:flex;gap:8px;margin:15px 0 12px}
+.sound-actions button{flex:1;min-height:40px;border:1px solid #80cfe9a2;border-radius:10px;background:#18465e;color:#e9fbff;font-size:13px;font-weight:900}
+#settings-close{margin-top:4px}.settings-foot{margin:9px 0 0;font-size:11px;color:#9ac4d8}
 </style>
 </head>
 <body>
@@ -112,6 +124,17 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="combo-hud"><b id="combo-val">0×</b></div>
   <div id="support-hud">🚁0 🔧0</div>
   <div id="notice"></div>
+ </div>
+ <div id="settings-overlay" class="off" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="settings-panel">
+   <div class="eyebrow">SOUND</div><h2 id="settings-title">♫ 音量設定</h2>
+   <div class="volume-row"><label for="volume-master">🔊 全体</label><output id="volume-master-label">100%</output><input id="volume-master" type="range" min="0" max="100" step="1" value="100"></div>
+   <div class="volume-row"><label for="volume-bgm">♫ BGM</label><output id="volume-bgm-label">100%</output><input id="volume-bgm" type="range" min="0" max="100" step="1" value="100"></div>
+   <div class="volume-row"><label for="volume-se">✦ SE</label><output id="volume-se-label">100%</output><input id="volume-se" type="range" min="0" max="100" step="1" value="100"></div>
+   <div class="sound-actions"><button id="settings-mute" type="button">🔊 ON</button><button id="settings-preview" type="button">♫ / ✦ 試聴</button></div>
+   <button id="settings-close" class="cta" type="button">✓ 戻る</button>
+   <p class="settings-foot">音量は自動保存されます</p>
+  </div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ BOSS</span><b>MEGA TITAN</b></div>
