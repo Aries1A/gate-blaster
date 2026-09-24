@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v23</title>
+<title>GATE BLASTER · WEBGL v24</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -431,9 +431,9 @@ function fieldOptionPool(){
   {id:'armor',icon:'🛡',title:'防御',desc:'ボス被害 -15%'}
  ];
  const support=[
-  {id:'drone',icon:'✦',title:'ドローン',desc:'✦ +1'},
-  {id:'heli',icon:'🚁',title:'ヘリ',desc:'🚁 +1'},
-  {id:'turret',icon:'🔧',title:'砲台',desc:'🔧 +1'}
+  {id:'drone',icon:'✦',title:'随伴ドローン',desc:'主武器のダメージ +3'},
+  {id:'heli',icon:'🚁',title:'攻撃ヘリ',desc:'敵へ自動ロケット攻撃'},
+  {id:'turret',icon:'🔧',title:'自動砲台',desc:'敵へ自動連射攻撃'}
  ].filter(o=>o.id==='drone'?player.drone<4:o.id==='heli'?player.heli<2:player.turret<2);
  const random=a=>a[Math.floor(Math.random()*a.length)];
  return [random(offense),random(defense),random(support.length?support:offense)];
@@ -622,7 +622,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v23 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v24 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -655,9 +655,9 @@ function stageClear(){
   {id:'hp',icon:'❤️',title:'HP +35',desc:'HP上限 +35'},
   {id:'armor',icon:'🛡️',title:'防御 +15%',desc:'ボス被害 -15%'}];
  const support=[
-  {id:'drone',icon:'✦',title:'ドローン +1',desc:'✦ +1'},
-  {id:'heli',icon:'🚁',title:'ヘリ +1',desc:'🚁 +1'},
-  {id:'turret',icon:'🔧',title:'砲台 +1',desc:'🔧 +1'}
+  {id:'drone',icon:'✦',title:'随伴ドローン +1',desc:'主武器のダメージ +3'},
+  {id:'heli',icon:'🚁',title:'攻撃ヘリ +1',desc:'敵へ自動ロケット攻撃'},
+  {id:'turret',icon:'🔧',title:'自動砲台 +1',desc:'敵へ自動連射攻撃'}
  ].filter(o=>o.id==='drone'?runBuild.drone<4:o.id==='heli'?runBuild.heli<2:runBuild.turret<2);
  const choose=list=>list[Math.floor(Math.random()*list.length)];
  const attackChoice=choose(offense);
@@ -685,7 +685,7 @@ function finalBuildChoice(){
  const options=[
   {id:'burst',icon:'💥',title:'決戦火力',desc:'火力 +45% · 連射 +8%'},
   {id:'supply',icon:'🛡️',title:'補給',desc:'人数 +14 · HP +40'},
-  {id:'support',icon:'🚁',title:'支援強化',desc:'ヘリ / 砲台 / ドローン'}
+  {id:'support',icon:'🚁',title:'支援強化',desc:'自動攻撃 + 随伴ドローン'}
  ];
  show('<div class="eyebrow">👑 FINAL BUILD</div>'+stagePath(4,5)+'<h1>BOSS <em>RUSH!</em></h1><div class="final-banner">3 BOSSES · 1 BUILD</div>'+
  '<div class="upgrades">'+options.map(o=>'<button class="upgrade" data-final="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
