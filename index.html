@@ -579,6 +579,42 @@ function updateEnemyShots(dt){
  }
  enemyShots=enemyShots.filter(p=>p.life>0&&p.z<player.z+.75).slice(-24);
 }
+function updateBossSiege(dt){
+ if(!boss||boss.used||mode!=='playing'){bossSiege=null;return;}
+ // The boss telegraphs artillery immediately after spawning, while still far away.
+ if(boss.z<player.z-2.06){
+  boss.siegeClock-=dt;
+  if(boss.siegeClock<=0&&!bossSiege){
+   const id=boss.bossType;
+   const width=id==='crusher'?1.42:id==='beetle'?1.08:id==='hydra'?1.18:1.26;
+   const delay=id==='crusher'?1.12:id==='beetle'?.76:id==='hydra'?.94:.92;
+   boss.siegeCount=(boss.siegeCount||0)+1;
+   const offset=id==='hydra'?(boss.siegeCount%2?-.30:.30):id==='beetle'?rnd(-.16,.16):0;
+   bossSiege={x:clamp(player.x+offset,-3.25,3.25),width,time:delay,pattern:id};
+   boss.siegeClock=Math.max(2.45,(id==='beetle'?2.72:id==='crusher'?3.68:id==='hydra'?3.14:3.32)-boss.phase*.12-stage*.035);
+   announce(id==='crusher'?'☄ HEAVY ARTILLERY!':id==='beetle'?'⚡ TARGET LOCK!':id==='hydra'?'☄ PLASMA STRIKE!':'☄ INCOMING ARTILLERY!',.75);
+   cue(230,.21,'sawtooth',.035);
+  }
+ }
+ if(!bossSiege)return;
+ bossSiege.time-=dt;
+ if(bossSiege.time>0)return;
+ const mark=bossSiege;bossSiege=null;
+ const covered=formation().filter(f=>Math.abs(f.x-mark.x)<mark.width&&Math.abs(f.z-player.z)<3.4).length;
+ if(covered>0){
+  bossHits++;
+  const mult=mark.pattern==='crusher'?1.2:mark.pattern==='beetle'?.94:1;
+  const lost=Math.min(Math.floor(player.team),Math.max(2,Math.ceil(covered*(.68+boss.phase*.07)*(1-player.armor)*mult)));
+  player.team=Math.max(0,player.team-lost);
+  player.hp=Math.max(0,player.hp-(12+boss.phase*2+stage*.45)*mult);
+  text('☄ -'+lost,mark.x,2.0,player.z,'#ff9ad7',.95);
+  burst(mark.x,1.0,player.z,C.magenta,28);flash('hurt');cue(110,.24,'sawtooth',.05);
+  if(player.hp<=0||player.team<1)lose();
+ }else{
+  text('DODGE!',player.x,2.0,player.z,'#8dfff0',.9);
+  burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);
+ }
+}
 function update(dt){
  if(mode!=='playing')return;
  t+=dt;walk+=dt;music(dt);if(player.overdrive>0)player.overdrive=Math.max(0,player.overdrive-dt);
@@ -623,7 +659,7 @@ function update(dt){
   }
   if(boss.z>=player.z-2.06){
    boss.attack-=dt;
-   if(boss.attack<=0&&!warning){
+   if(boss.attack<=0&&!warning&&!bossSiege){
     const id=boss.bossType,width=id==='crusher'?2.55:id==='beetle'?1.5:id==='hydra'?1.35:2.10;
     const telegraph=id==='crusher'?1.18:id==='beetle'?.59:id==='hydra'?.77:.86;
     boss.attackCount=(boss.attackCount||0)+1;
@@ -634,6 +670,7 @@ function update(dt){
    }
   }
  }
+ if(mode==='playing')updateBossSiege(dt);
  if(warning){warning.time-=dt;if(warning.time<=0){
   if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
    bossHits++;const bossMult=warning.pattern==='crusher'?1.26:warning.pattern==='beetle'?.86:1;const loss=Math.min(Math.floor(player.team),Math.max(6,Math.ceil(player.team*(.36+boss.phase*.05)*(1-player.armor)*bossMult)));
@@ -776,7 +813,13 @@ function squad(){
 
 function render(){
  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera); world();
- if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){const w=warning.width||2.25;box(warning.x,.17,player.z-.25,w*2,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx*w,.20,player.z-.25,.055,.05,6.8,C.eye)} squad();drawSupport(); for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
+ if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} if(boss&&!boss.used)drawBoss(boss); if(warning){const w=warning.width||2.25;box(warning.x,.17,player.z-.25,w*2,.015,6.8,[1,.11,.20,1]);for(const dx of [-1,1])box(warning.x+dx*w,.20,player.z-.25,.055,.05,6.8,C.eye)}
+  if(bossSiege){const w=bossSiege.width,hot=Math.sin(walk*23)>0;
+   box(bossSiege.x,.18,player.z-.2,w*2,.02,6.25,hot?[1,.16,.34,1]:[.67,.08,.29,1]);
+   for(const dx of [-1,1])box(bossSiege.x+dx*w,.21,player.z-.2,.07,.055,6.25,C.magenta);
+   sphere(boss.x,5.7,boss.z-1.2,.65,.65,.65,C.magenta);
+  }
+  squad();drawSupport(); for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
  flush(); fx.clearRect(0,0,screenW,screenH); if(!player)return;
  for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(String(Math.ceil(Math.max(0,e.hp))),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
@@ -799,7 +842,7 @@ function updateHUD(){
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
  $('field-xp-label').textContent=next===undefined?'⚡ ALL FIELD UPGRADES UNLOCKED':'⚡ KILL ENERGY '+Math.max(0,fieldCharge-prev)+' / '+(next-prev);
  impactFlash.style.opacity=flashTime>0?'1':'0';
- if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%'; $('phase-val').textContent='PHASE '+boss.phase; $('boss-name').textContent='⚠ '+boss.name+' / BOSS'}
+ if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%'; $('phase-val').textContent=bossSiege?'☄ TARGET LOCK':'PHASE '+boss.phase; $('boss-name').textContent='⚠ '+boss.name+' / BOSS'}
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
 function pointerX(e){const r=glCanvas.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width*2-1,-1,1)}
