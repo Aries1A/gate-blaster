@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v20</title>
+<title>GATE BLASTER · WEBGL v21</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -593,7 +593,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v20</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v21</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -679,16 +679,21 @@ function bossCounter(){
  damage(boss,strike,'counter');
  if(boss&&!boss.used)boss.weakTime=2.1;
 }
-function damage(e,value,source='rifle'){
- if(!e || e.used || mode!=='playing')return;
+function damage(e,value,source='rifle',showHit=true){
+ if(!e || e.used || mode!=='playing')return {actual:0,crit:false};
  const crit=source!=='rifle' ? false : Math.random()<.09;
  const base=e.kind==='boss'&&source==='rifle'?Math.max(value,bossShotFloor(e)):value;
  const exposed=e.kind==='boss'&&e.weakTime>0&&source!=='counter'?1.35:1;
  const actual=(crit?base*1.65:base)*exposed*((player&&player.overdrive>0)?1.8:1);
  e.hp-=actual;e.hit=.12;
  if(e.kind==='crate')sfx('crateHit');else if(e.kind==='boss')sfx('bossHit');else sfx('hit');
- if(crit){
-  text('✦'+Math.round(actual),e.x+rnd(-.36,.36),e.kind==='boss'?5.5:1.65,e.z,'#ffe87b',.55);
+ if(showHit&&source!=='counter'&&(e.kind==='mob'||e.kind==='boss')){
+  // Dense troop volleys display one total below; isolated enemies and boss
+  // display their own hit numbers, including ordinary (non-critical) damage.
+  if(crit||e.labelTime<=0||!e.labelTime){
+   text((crit?'✦':'')+Math.round(actual),e.x+rnd(-.26,.26),e.kind==='boss'?5.5:1.75,e.z,crit?'#ffe47b':'#f7fbff',crit?.64:.53);
+   e.labelTime=crit?.075:.10;
+  }
  }
  if(crit||source==='heli')burst(e.x,e.kind==='boss'?3.0:1.2,e.z,crit?C.spark:C.rocket,crit?8:13);
  if(e.hp<=0){
@@ -707,6 +712,7 @@ function damage(e,value,source='rifle'){
   }
   if(e.kind==='boss')win();
  }
+ return {actual,crit};
 }
 
 function pickTarget(){
@@ -976,9 +982,19 @@ function update(dt){
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<3.45);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
     const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,4);
+    let totalDamage=0,anyCrit=false;
     for(const [i,e] of targets.entries()){
-     damage(e,b.damage*(i===0?1:.85),'rifle');
+     const result=damage(e,b.damage*(i===0?1:.85),'rifle',false);
+     totalDamage+=result.actual;anyCrit=anyCrit||result.crit;
      if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
+    }
+    // Aggregate the damage of this shot instead of printing four overlapping labels.
+    if(totalDamage>0){
+     const wave=streamGroups[hit.streamId];
+     if(!wave||wave.lastDamageLabel===undefined||t-wave.lastDamageLabel>=.075){
+      text((anyCrit?'✦':'')+Math.round(totalDamage),clamp(b.x,-3.2,3.2),1.9,hit.z,anyCrit?'#ffe47b':'#f7fbff',.56);
+      if(wave)wave.lastDamageLabel=t;
+     }
     }
    }else{
     damage(hit,b.damage,'rifle');
@@ -1118,7 +1134,7 @@ function render(){
  for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
  for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
- for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('CRIT')?25:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
+ for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('✦')?23:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
 }
 function tag(value,x,y,color,bg,scale){
  const sz=clamp(18*scale,12,30);fx.save();fx.font=`900 ${sz}px system-ui`;fx.textAlign='center';const w=fx.measureText(value).width+14,h=sz+10;
