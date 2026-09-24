@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v12</title>
+<title>GATE BLASTER · WEBGL v13</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -85,7 +85,7 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div id="bullets-hud" style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900;text-shadow:0 1px 5px #002">☀ SUNNY HARBOR</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v12</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v13</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -264,7 +264,7 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
-let bullets=[],enemyShots=[],runBuild=null,bossHits=0,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
@@ -403,7 +403,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const mob=(when,x,hp,n,type)=>spawn('mob',when,{x,hp,n,mobType:type});
@@ -419,7 +419,7 @@ function reset(){
  spawn('crate',25.0,{x:-2.20,hp:crateHp+32,reward:'team'}); spawn('crate',26.45,{x:2.20,hp:crateHp+35,reward:'heli'}); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
  const sideLanes=[-2.4,0,2.4,-1.15,1.15];
  for(let i=0;i<6;i++)mob(6.1+i*3.55,sideLanes[(i*3+stage)%sideLanes.length],mobHp+15+i*5,15+(i%4)*3,chooseMobType(20+i));
- const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*stageModifier().boss),bossType:bp.id});
+ const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss),bossType:bp.id});
  waveEvents.sort((a,b)=>a.when-b.when);
  $('stage-val').textContent=String(stage).padStart(2,'0'); announce('STAGE '+stage+' · '+stageModifier().name,1.5);
 }
@@ -430,12 +430,12 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">TRUE 3D • WEBGL v12 · TACTICAL RUSH</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br>雑魚撃破で<b>戦闘中にも3択強化</b>！敵の弾を避け、各ステージの特殊ルールとボスの攻撃パターンを攻略しよう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
+ show(`<div class="eyebrow">TRUE 3D • WEBGL v13 · BOSS ONSLAUGHT</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br>雑魚撃破で<b>戦闘中にも3択強化</b>！ボスは登場直後から砲撃してくる。赤い着弾予告を避けて強敵を攻略しよう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
- if(mode!=='playing')return;
+ if(mode!=='playing')return;bossSiege=null;
  mode='win';best=Math.max(best,stage+1);try{localStorage.setItem('gate-blaster-webgl-best',String(best))}catch(e){}
  cue(920,.33,'sawtooth',.055);flash();
  const bits=Array.from({length:44},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${2.1+(i%5)*.45}s;--delay:${-(i%7)*.42}s;--r:${i*29}deg;--s:${(i%2?-1:1)*(18+i%24)}vw;--c:${['#ffd65c','#63ffe8','#ff617b','#70abff'][i%4]}"></i>`).join('');
@@ -464,7 +464,7 @@ function win(){
   cue(1000,.20);stage++;start();
  });
 }
-function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減少。<br>ステージごとの大ボスと雑魚ラッシュを突破しよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
+function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減少。<br>ステージごとの大ボスと雑魚ラッシュを突破しよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 
 function doSpawn(e){
  if(e.kind==='mob'){
@@ -475,7 +475,7 @@ function doSpawn(e){
  else if(e.kind==='crate')entities.push({kind:'crate',x:e.x,z:-31,y:0,speed:6.9,hp:e.hp,maxHp:e.hp,reward:e.reward,hit:0,used:false});
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
-  boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,sway:0,used:false};
+  boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
   introTime=2.5;bossIntro.innerHTML=`<span>⚠ DANGER · STAGE ${stage}</span><b>${boss.name}</b><span>${stageTheme(stage).name} / PHASE 1 / 3</span>`;
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);announce(`⚠ ${boss.name} ARRIVES`,2.1);
  }
