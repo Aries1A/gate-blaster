@@ -929,14 +929,16 @@ function bossShotFloor(b){
  const build=Math.min(2.4,Math.sqrt(player.power*player.rate)*(1+Math.max(0,player.weapon-1)*.055+player.drone*.02));
  return b.maxHp*(b.rushPart?.0048:.0032)*build * (cadence/.14) / salvo;
 }
-function bossCounter(){
- if(!boss||boss.used||mode!=='playing'||t-boss.lastCounter<2.1)return;
- boss.lastCounter=t;
- const strike=boss.maxHp*.03;
- burst(boss.x,3.2,boss.z,C.spark,22);pulse(boss.x,3.2,boss.z,'#ffed82',.43);text('⚡ -'+Math.ceil(strike),boss.x,5.65,boss.z,'#ffef8c',1.1);
+function bossCounter(target=boss){
+ if(!target||target.used||mode!=='playing'||t-target.lastCounter<2.1)return;
+ target.lastCounter=t;
+ const strike=target.maxHp*.03;
+ const height=target.rushPart?3.0:5.65;
+ burst(target.x,height*.55,target.z,C.spark,22);pulse(target.x,height*.55,target.z,'#ffed82',.43);
+ text('⚡ -'+Math.ceil(strike),target.x,height,target.z,'#ffef8c',1.1);
  cue(1100,.16,'triangle',.050);
- damage(boss,strike,'counter');
- if(boss&&!boss.used)boss.weakTime=2.1;
+ damage(target,strike,'counter');
+ if(!target.used)target.weakTime=2.1;
 }
 function damage(e,value,source='rifle',showHit=true){
  if(!e || e.used || mode!=='playing')return {actual:0,crit:false};
@@ -1087,8 +1089,78 @@ function updateBossSiege(dt){
   if(player.hp<=0||player.team<1)lose();
  }else{
   text('✓',player.x,2.0,player.z,'#8dfff0',.9);
-  burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);bossCounter();
+  burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);bossCounter(rushBosses.find(b=>b.rushPart===mark.owner)||boss);
  }
+}
+function bossSpecialHit(x,width,kind){
+ if(mode!=='playing')return;
+ const contact=formation().filter(f=>Math.abs(f.x-x)<width&&Math.abs(f.z-player.z)<1.6).length;
+ if(!contact)return;
+ bossHits++;
+ const cap=kind==='laser'?5:kind==='crusher'?3:2;
+ const lost=Math.min(Math.floor(player.team),Math.min(cap,Math.max(1,Math.ceil(contact*.20*(1-player.armor)))));
+ player.team=Math.max(0,player.team-lost);
+ player.hp=Math.max(0,player.hp-(kind==='laser'?7:kind==='crusher'?6:4)*(1-player.armor*.5));
+ text('-'+lost,x,1.9,player.z,'#ff9fca',.71);
+ burst(x,1.03,player.z,kind==='laser'?C.magenta:C.rocket,15);
+ flash('hurt');cue(140,.14,'sawtooth',.029);
+ if(player.hp<=0||player.team<1)lose();
+}
+function castBossSpecial(b){
+ if(!b||b.used||mode!=='playing')return;
+ const kind=b.bossType,sourceZ=Math.min(b.z,player.z-8.2);
+ if(kind==='hydra'){
+  bossHazards.push({kind:'laser',owner:b.rushPart||0,bossRef:b,x:clamp(player.tx,-3.05,3.05),
+   z:sourceZ,width:.76,time:1.0,active:.29,hit:false});
+  announce('⚠ LOCK ON',.65);cue(450,.23,'sawtooth',.024);
+ }else{
+  const n=kind==='beetle'?3:kind==='crusher'?2:2;
+  const spread=kind==='beetle'?1.20:kind==='crusher'?1.42:.93;
+  const vz=kind==='beetle'?10.5:kind==='crusher'?7.7:9.3;
+  for(let i=0;i<n;i++){
+   const aim=clamp(player.tx+(i-(n-1)/2)*spread,-3.18,3.18);
+   // At least 8 units of flight time, including at point-blank boss distance.
+   const origin=clamp(b.x+(i-(n-1)/2)*.22,-3.0,3.0);
+   bossHazards.push({kind:'orb',owner:b.rushPart||0,x:origin,y:1.25,z:sourceZ,
+    vx:clamp((aim-origin)*vz/(player.z-sourceZ),-4.6,4.6),vz,width:kind==='crusher'?.55:.42,
+    life:3.2,pattern:kind,hit:false});
+  }
+  burst(b.x,1.9,sourceZ,C.rocket,8);
+  cue(kind==='crusher'?140:350,.10,'sawtooth',.026);
+ }
+}
+function updateBossAttacks(dt){
+ if(mode!=='playing')return;
+ // Each boss has a different cadence. Offset the three rush attacks at spawn.
+ for(const b of activeBosses()){
+  b.specialClock-=dt;
+  if(b.z>-14&&b.specialClock<=0&&bossHazards.length<13){
+   castBossSpecial(b);
+   b.specialClock=Math.max(2.5,(b.bossType==='hydra'?4.7:b.bossType==='crusher'?4.2:3.8)-b.phase*.18+(b.rushPart?.25:0));
+  }
+ }
+ for(const h of bossHazards){
+  if(h.kind==='orb'){
+   const previous=h.z;h.x+=h.vx*dt;h.z+=h.vz*dt;h.life-=dt;
+   if(h.life<=0)continue;
+   if(h.z>=player.z-.60&&previous<=player.z+.60){
+    bossSpecialHit(h.x,h.width,h.pattern);h.life=0;
+   }
+  }else{
+   h.time-=dt;
+   if(h.time<=0&&!h.hit){
+    h.hit=true;
+    const covered=formation().some(f=>Math.abs(f.x-h.x)<h.width&&Math.abs(f.z-player.z)<1.6);
+    if(covered)bossSpecialHit(h.x,h.width,'laser');
+    else{
+     text('✓',player.x,1.95,player.z,'#8dfff0',.8);
+     bossCounter(h.bossRef);
+    }
+   }
+   if(h.hit)h.active-=dt;
+  }
+ }
+ bossHazards=bossHazards.filter(h=>h.kind==='orb'?h.life>0&&h.z<player.z+.75:h.active>0);
 }
 function update(dt){
  if(mode!=='playing')return;
@@ -1216,6 +1288,17 @@ function update(dt){
    }
   }
  }
+ // The other two bosses remain present, move along separate lanes and cast
+ // their own specials even while the primary uses the original attack system.
+ for(const b of activeBosses()){
+  if(b===boss)continue;
+  b.weakTime=Math.max(0,(b.weakTime||0)-dt);
+  if(b.hit>0)b.hit=Math.max(0,b.hit-dt);
+  b.z=Math.min(player.z-4.6,b.z+dt*(b.entered?2.15:4.2));
+  if(!b.entered&&b.z>=-10.5)b.entered=true;
+  b.x+=(b.anchorX+.17*Math.sin(walk*(1.3+b.rushPart*.2))-b.x)*Math.min(1,dt*.65);
+  b.phase=b.hp/b.maxHp<.32?3:b.hp/b.maxHp<.66?2:1;
+ }
  if(mode==='playing')updateBossSiege(dt);
  if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
   if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
@@ -1224,9 +1307,10 @@ function update(dt){
    text('-'+loss,player.x,2.1,player.z,'#ff879b',1.2);
    burst(player.x,1.1,player.z,C.redLight,38);flash('hurt');cue(105,.34,'sawtooth',.055);
    if(player.hp<=0||player.team<1){lose();}
-  }else{text('✓',player.x,2.0,player.z,'#8dfff0');cue(840,.11);bossCounter()}
+  }else{text('✓',player.x,2.0,player.z,'#8dfff0');cue(840,.11);bossCounter(rushBosses.find(b=>b.rushPart===warning.owner)||boss)}
   warning=null;
  }}
+ if(mode==='playing')updateBossAttacks(dt);
  if(mode!=='playing')return;
  shotClock-=dt;
  if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);muzzleTime=.09;sfx('shot');
