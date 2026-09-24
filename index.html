@@ -304,19 +304,19 @@ function stageModifier(idx=stage){
 }
 function fieldOptionPool(){
  const offense=[
-  {id:'rapid',icon:'⚡',title:'ラピッドファイア',desc:'このステージ中の連射速度 +25%'},
-  {id:'power',icon:'💥',title:'パワーショット',desc:'このステージ中の攻撃力 +28%'},
-  {id:'overdrive',icon:'🌟',title:'オーバードライブ',desc:'9秒間、主武器と支援兵器の火力 +80%'}
+  {id:'rapid',icon:'⚡',title:'連射',desc:'連射 +25%'},
+  {id:'power',icon:'💥',title:'火力',desc:'火力 +28%'},
+  {id:'overdrive',icon:'🌟',title:'OD',desc:'9秒間 火力 +80%'}
  ];
  const defense=[
-  {id:'team',icon:'👥',title:'緊急増援',desc:'隊員 +12人'},
-  {id:'repair',icon:'❤️',title:'クイックリペア',desc:'HPを35回復'},
-  {id:'armor',icon:'🛡',title:'アーマー強化',desc:'このステージ中のボス被害 -15%'}
+  {id:'team',icon:'👥',title:'増援',desc:'人数 +12'},
+  {id:'repair',icon:'❤️',title:'回復',desc:'HP +35'},
+  {id:'armor',icon:'🛡',title:'防御',desc:'ボス被害 -15%'}
  ];
  const support=[
-  {id:'drone',icon:'✦',title:'支援ドローン',desc:'ドローン +1 (最大4)'},
-  {id:'heli',icon:'🚁',title:'航空支援',desc:'ヘリ +1 (最大2)'},
-  {id:'turret',icon:'🔧',title:'自動砲台',desc:'砲台 +1 (最大2)'}
+  {id:'drone',icon:'✦',title:'ドローン',desc:'✦ +1'},
+  {id:'heli',icon:'🚁',title:'ヘリ',desc:'🚁 +1'},
+  {id:'turret',icon:'🔧',title:'砲台',desc:'🔧 +1'}
  ].filter(o=>o.id==='drone'?player.drone<4:o.id==='heli'?player.heli<2:player.turret<2);
  const random=a=>a[Math.floor(Math.random()*a.length)];
  return [random(offense),random(defense),random(support.length?support:offense)];
@@ -324,7 +324,7 @@ function fieldOptionPool(){
 function openFieldChoice(){
  if(mode!=='playing'||fieldPicks>=fieldThresholds.length)return;
  fieldChoicePending=false;mode='field-upgrade';const choices=fieldOptionPool();
- show('<div class="eyebrow">⚡ KILL ENERGY FULL</div><h1>FIELD <em>UPGRADE!</em></h1><p>雑魚を倒して獲得！次の戦闘に備えて1つ選ぼう。</p><div class="upgrades">'+choices.map(o=>'<button class="upgrade" data-field="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div><div class="mini">戦闘は選択中、一時停止するよ</div>');
+ show('<div class="eyebrow">⚡ READY</div><h1>BOOST <em>UP!</em></h1><div class="upgrades">'+choices.map(o=>'<button class="upgrade" data-field="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
  panel.querySelectorAll('[data-field]').forEach(btn=>btn.onclick=()=>{
   if(mode!=='field-upgrade')return;
   const id=btn.dataset.field;
@@ -462,7 +462,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">TRUE 3D • WEBGL v16 · CLEAN HUD</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br><b>箱を取るか、ゲートで人数を増やすか、腕次第で両方も！</b> 箱は撃って開け、レーンに入って回収。ゲートは通過中に1人ずつ増える。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v16</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -472,17 +472,17 @@ function win(){
  cue(920,.33,'sawtooth',.055);flash();
  const bits=Array.from({length:44},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${2.1+(i%5)*.45}s;--delay:${-(i%7)*.42}s;--r:${i*29}deg;--s:${(i%2?-1:1)*(18+i%24)}vw;--c:${['#ffd65c','#63ffe8','#ff617b','#70abff'][i%4]}"></i>`).join('');
  const pool=[
-  {id:'power',icon:'💥',title:'火力増強 +25%',desc:'直進弾と支援兵器のダメージを強化'},
-  {id:'team',icon:'👥',title:'初期部隊 +8',desc:'以後のステージの初期人数を増やす'},
-  {id:'weapon',icon:'🔫',title:'武器 LV +1',desc:'初期武器を強化して火力アップ'},
-  {id:'rate',icon:'⚡',title:'連射速度 +20%',desc:'直進する弾をさらに速く連射'},
-  {id:'hp',icon:'❤️',title:'最大HP +35',desc:'ボスの大技に耐えやすくする'},
-  {id:'armor',icon:'🛡️',title:'被害軽減 +15%',desc:'ボスのパンチによる人数損失を軽減'},
-  {id:'heli',icon:'🚁',title:'攻撃ヘリ +1',desc:'ロケット支援を追加 (最大2機)'},
-  {id:'turret',icon:'🔧',title:'自動砲台 +1',desc:'支援砲台を追加 (最大2基)'}
+  {id:'power',icon:'💥',title:'火力 +25%',desc:'弾・支援 +25%'},
+  {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
+  {id:'weapon',icon:'🔫',title:'武器 +1',desc:'武器 +1'},
+  {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'},
+  {id:'hp',icon:'❤️',title:'HP +35',desc:'HP上限 +35'},
+  {id:'armor',icon:'🛡️',title:'防御 +15%',desc:'ボス被害 -15%'},
+  {id:'heli',icon:'🚁',title:'ヘリ +1',desc:'🚁 +1'},
+  {id:'turret',icon:'🔧',title:'砲台 +1',desc:'🔧 +1'}
  ].filter(o=>o.id!=='heli'||runBuild.heli<2).filter(o=>o.id!=='turret'||runBuild.turret<2);
  const choices=[];while(choices.length<3&&pool.length)choices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
- show(`<div class="victory">${bits}</div><div class="eyebrow">✦ STAGE ${stage} CLEAR ✦</div><h1>${boss.name} <em>CRUSHED!</em></h1><div class="stats"><div class="stat"><strong>${Math.floor(player.team)}</strong><small>生存部隊</small></div><div class="stat"><strong>${kills}</strong><small>撃破数</small></div><div class="stat"><strong>${maxCombo}×</strong><small>最大コンボ</small></div></div><p>次のステージに持ち越す強化を<br><b>ひとつ選ぼう！</b></p><div class="upgrades">${choices.map(o=>`<button class="upgrade" data-up="${o.id}"><span class="emoji">${o.icon}</span><span><b>${o.title}</b><small>${o.desc}</small></span></button>`).join('')}</div>`);
+ show(`<div class="victory">${bits}</div><div class="eyebrow">STAGE ${stage}</div><h1>✦ <em>CLEAR!</em></h1><div class="stats"><div class="stat"><strong>👥 ${Math.floor(player.team)}</strong></div><div class="stat"><strong>⚡ ${kills}</strong></div><div class="stat"><strong>🔥 ${maxCombo}×</strong></div></div><div class="upgrades">${choices.map(o=>`<button class="upgrade" data-up="${o.id}"><span class="emoji">${o.icon}</span><span><b>${o.title}</b><small>${o.desc}</small></span></button>`).join('')}</div>`);
  panel.querySelectorAll('[data-up]').forEach(btn=>btn.onclick=()=>{
   const id=btn.dataset.up;
   if(id==='power')runBuild.power*=1.25;
@@ -496,7 +496,7 @@ function win(){
   cue(1000,.20);stage++;start();
  });
 }
-function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減少。<br>ステージごとの大ボスと雑魚ラッシュを突破しよう。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
+function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage}</div><h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best}</div>`);$('retry').onclick=beginRun}
 
 function doSpawn(e){
  if(e.kind==='mob'){
@@ -508,7 +508,7 @@ function doSpawn(e){
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
   boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
-  introTime=2.5;bossIntro.innerHTML=`<span>⚠ DANGER · STAGE ${stage}</span><b>${boss.name}</b><span>${stageTheme(stage).name} / PHASE 1 / 3</span>`;
+  introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${boss.name}</b>`;
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);announce(`⚠ ${boss.name} ARRIVES`,2.1);
  }
 }
@@ -917,7 +917,7 @@ for(const canvas of [glCanvas,fxCanvas]){
  for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,e=>{if(drag===e.pointerId)drag=null});
 }
 document.addEventListener('keydown',e=>{if(!player)return;if(e.key==='ArrowLeft'||e.key==='a')player.tx=clamp(player.tx-.65,-3.55,3.55);if(e.key==='ArrowRight'||e.key==='d')player.tx=clamp(player.tx+.65,-3.55,3.55);if(e.key===' '&&mode==='playing')togglePause()});
-function togglePause(){if(mode==='playing'){mode='paused';show(`<div class="eyebrow">PAUSE</div><h1>一時停止</h1><p>続きから再開できるよ。</p><button class="cta" id="resume">▶ 再開</button>`);$('resume').onclick=togglePause;$('pause').textContent='▶'}else if(mode==='paused'){mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ'}}
+function togglePause(){if(mode==='playing'){mode='paused';show(`<div class="eyebrow">Ⅱ</div><h1>PAUSE</h1><button class="cta" id="resume">▶ RESUME</button>`);$('resume').onclick=togglePause;$('pause').textContent='▶'}else if(mode==='paused'){mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ'}}
 $('pause').onclick=togglePause;
 $('audio').onclick=()=>{soundOn=!soundOn;$('audio').classList.toggle('on',soundOn);$('audio').textContent=soundOn?'♫':'♪';$('audio').setAttribute('aria-label',soundOn?'音楽と効果音をオフにする':'音楽と効果音をオンにする');if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){}musicClock=0;cue(840,.12)}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')togglePause()});
