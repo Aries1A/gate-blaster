@@ -1271,11 +1271,11 @@ function update(dt){
   if(boss.summon<=0){
    const allLanes=boss.bossType==='crusher'?[-2.4,2.4]:boss.bossType==='hydra'?[-2.4,0,2.4]:[-2.2,2.2];
    const lanes=boss.rushPart?allLanes.slice(0,1):allLanes;
-   boss.summon=Math.max(boss.rushPart?7.8:4.0,(boss.rushPart?9.0:5.6)-boss.phase*.45-stage*.05);
+   boss.summon=Math.max(boss.rushPart?10.5:4.0,(boss.rushPart?11.3:5.6)-boss.phase*.45-stage*.05);
    for(const x of lanes){const type=x===0?'guard':(boss.bossType==='beetle'?'runner':boss.bossType==='crusher'?'brute':chooseMobType(Math.round(x*10+stage))); const n=type==='brute'?16+boss.phase*2:13+boss.phase*2; const hp=32+stage*16+boss.phase*14; doSpawn({kind:'mob',x,when:t,mobType:type,hp,n});}
    announce('⚠ +ENEMY',1.0);
   }
-  if(boss.z>=player.z-2.06){
+  if(!rushStarted&&boss.z>=player.z-2.06){
    boss.attack-=dt;
    if(boss.attack<=0&&!warning&&!bossSiege){
     const id=boss.bossType,width=id==='crusher'?2.55:id==='beetle'?1.5:id==='hydra'?1.35:2.10;
@@ -1299,7 +1299,7 @@ function update(dt){
   b.x+=(b.anchorX+.17*Math.sin(walk*(1.3+b.rushPart*.2))-b.x)*Math.min(1,dt*.65);
   b.phase=b.hp/b.maxHp<.32?3:b.hp/b.maxHp<.66?2:1;
  }
- if(mode==='playing')updateBossSiege(dt);
+ if(mode==='playing'&&!rushStarted)updateBossSiege(dt);
  if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
   if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
    bossHits++;const bossMult=warning.pattern==='crusher'?1.26:warning.pattern==='beetle'?.86:1;const loss=Math.min(Math.floor(player.team),Math.max(6,Math.ceil(player.team*(.36+boss.phase*.05)*(1-player.armor)*bossMult)));
