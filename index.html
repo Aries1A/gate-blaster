@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v8</title>
+<title>GATE BLASTER · WEBGL v9</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -78,7 +78,7 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900">⇧ STRAIGHT FIRE</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v8</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v9</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -260,6 +260,8 @@ function formation(team=player.team){const n=Math.min(96,Math.max(1,Math.floor(t
  for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols,per=Math.min(cols,n-r*cols);out.push({x:player.x+(c-(per-1)/2)*.35+(r%2?.15:0),z:player.z+(r-(rows-1)/2)*.43});}return out;}
 function enemyPositions(e){const n=Math.max(1,Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1))),cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols),out=[];
  for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols;out.push({x:e.x+(c-(cols-1)/2)*.39,z:e.z+(r-(rows-1)/2)*.42});}return out;}
+// Each surviving enemy soldier has its own share of the crowd's hit points.
+function crowdHealth(baseHp,n){return Math.ceil(Math.max(baseHp*1.8,n*(12+stage*2.5)))}
 function musicTone(freq,dur,vol,type='triangle'){if(!audioContext||!soundOn)return;const now=audioContext.currentTime,o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);if(type==='sine')o.frequency.exponentialRampToValueAtTime(Math.max(38,freq*.57),now+dur);a.gain.setValueAtTime(.0001,now);a.gain.linearRampToValueAtTime(vol,now+.009);a.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(a);a.connect(audioContext.destination);o.start(now);o.stop(now+dur+.025);}
 function music(dt){if(!soundOn||mode!=='playing')return;if(!audioContext){try{audioContext=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}}if(audioContext.state!=='running')return;
  musicClock-=dt;let guard=0;while(musicClock<=0&&guard++<3){musicClock+=.115;const step=musicStep++%32,beat=step%16,bossOn=!!(boss&&!boss.used);const roots=bossOn?[55,55,58.27,49]:[65.41,58.27,61.74,55],root=roots[Math.floor(step/8)];
@@ -316,7 +318,7 @@ function reset(){
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
 function beginRun(){stage=1;runBuild=makeBuild();start()}
-function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v8 · SIEGE MODE</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>ボスは登場直後から攻撃可能！ 約7倍の雑魚と超高HPボスを突破して3択で強化しよう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
+function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v9 · DANGER ZONE</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>雑魚のHPは兵士数に比例。最後の1人でも敵に触れるとアウト！ 超高HPボスと3択強化に挑もう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
  if(mode!=='playing')return;
@@ -354,10 +356,10 @@ function win(){
 function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減り、<br>ボスのパンチを何度も受けると敗北。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 function doSpawn(e){
  if(e.kind==='mob'){
-  // 7x soldiers per ordinary wave. Keep full crowd count for collisions.
-  const hp=Math.ceil(e.hp*1.8);
+  // Scale total health with the actual number of enemies, not just the wave label.
+  const n=Math.ceil(e.n*7),hp=crowdHealth(e.hp,n);
   entities.push({kind:'mob',x:e.x,z:-29,y:0,hp,maxHp:hp,
-   n:Math.ceil(e.n*7),speed:rnd(6.6,8.1),hit:0,seed:rnd(0,100),used:false});
+   n,speed:rnd(6.6,8.1),hit:0,seed:rnd(0,100),used:false});
  }
  else if(e.kind==='gate')entities.push({kind:'gate',x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,length:8.5,used:false});
  else if(e.kind==='crate')entities.push({kind:'crate',x:e.x,z:-31,y:0,speed:6.9,hp:e.hp,maxHp:e.hp,reward:e.reward,hit:0,used:false});
@@ -453,9 +455,15 @@ function update(dt){
     for(const f of friends){if(foes.some(enemy=>Math.abs(f.x-enemy.x)<.34&&Math.abs(f.z-enemy.z)<.43)){
      losses++;if(losses<=8)burst(f.x,.72,f.z,C.redLight,3);
     }}
-    const lost=Math.min(Math.max(0,Math.floor(player.team)-1),losses);
-    if(lost>0){player.team-=lost;text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035)}
-    e.used=true;if(player.team<=1)lose();
+    // Take only the soldiers that actually overlap. A lone survivor is no longer invulnerable.
+    const lost=Math.min(Math.floor(player.team),losses);
+    if(lost>0){
+     player.team=Math.max(0,player.team-lost);
+     player.hp=Math.max(0,player.hp-Math.max(3,Math.ceil(lost*.9)));
+     text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035);
+     if(player.team<1||player.hp<=0)lose();
+    }
+    e.used=true;
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate'&&e.z>player.z+1)e.used=true;
  }
@@ -470,9 +478,10 @@ function update(dt){
   if(boss.summon<=0){
    boss.summon=Math.max(2.05,3.2-boss.phase*.28-stage*.045);
    for(const x of [-2.6,0,2.6]){
-    const hp=105+stage*42+boss.phase*33;
+    const n=56+boss.phase*14+Math.min(14,stage*2);
+    const hp=crowdHealth(105+stage*42+boss.phase*33,n);
     entities.push({kind:'mob',x,z:-24,y:0,hp,maxHp:hp,
-      n:56+boss.phase*14+Math.min(14,stage*2),speed:7.5+boss.phase*.18,
+      n,speed:7.5+boss.phase*.18,
       hit:0,seed:rnd(0,100),used:false});
    }
    announce('⚠ ENEMY REINFORCEMENTS',1.1);
