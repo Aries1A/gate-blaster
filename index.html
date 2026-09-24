@@ -769,7 +769,10 @@ function bossShotFloor(b){
  // fire divide the floor so a strong build never gets a free multiplier.
  const salvo=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
  const cadence=Math.max(.05,.14/player.rate);
- return b.maxHp*(b.rushPart?.0048:.0032) * (cadence/.14) / salvo;
+ // Gear still matters even when a weak party needs the boss damage floor.
+ // Better weapons and attack/speed upgrades raise its effective DPS.
+ const build=Math.min(2.4,Math.sqrt(player.power*player.rate)*(1+Math.max(0,player.weapon-1)*.055+player.drone*.02));
+ return b.maxHp*(b.rushPart?.0048:.0032)*build * (cadence/.14) / salvo;
 }
 function bossCounter(){
  if(!boss||boss.used||mode!=='playing'||t-boss.lastCounter<2.1)return;
