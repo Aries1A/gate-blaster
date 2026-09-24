@@ -1,8 +1,15 @@
-# GATE BLASTER — WebGL v8 SIEGE MODE
+# GATE BLASTER — WebGL v9 DANGER ZONE
 
 WebGL 2で独自3Dモデルを描画する、iPhone Safari・PC向けの群衆シューティングゲーム。
 
 **プレイ:** https://aries1a.github.io/gate-blaster/
+
+## v9: 大群に見合う耐久力＆接触リスク
+
+- 雑魚の集団HPを、実際の兵士数に連動させた。ステージ1の最初の84人集団はHP約125→1,218に上昇。
+- ボス戦中に追加される雑魚のHPも実人数に合わせて増加。
+- 部隊が最後の1人でも敵に接触した場合は倒される。接触がない場合に人数を減らすことはない。
+- 接触した兵士の人数に応じて部隊HPにも被害が発生。
 
 ## v8: 大群＆攻城戦
 
