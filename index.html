@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v11</title>
+<title>GATE BLASTER · WEBGL v12</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -25,6 +25,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
 .upgrades{display:grid;gap:9px;margin:16px 0}.upgrade{display:flex;align-items:center;gap:12px;text-align:left;padding:13px 12px;border:1px solid #84ddff83;border-radius:13px;color:#f0fbff;background:linear-gradient(115deg,#1c4961,#123047);font:inherit;cursor:pointer}.upgrade:active{transform:scale(.98)}.upgrade .emoji{font-size:29px;width:39px;text-align:center}.upgrade b{font-size:14px;display:block}.upgrade small{font-size:11px;color:#b9d6e7;display:block;margin-top:3px}
 #progress{margin:7px auto 0;width:min(74%,360px);height:5px;background:#09283ed9;border-radius:6px;overflow:hidden;border:1px solid #74e8ff5b}
 #progress-fill{width:0;height:100%;background:linear-gradient(90deg,#4ca8f0,#92fff1);transition:width .15s}
+#field-xp{position:relative;margin:5px auto 0;width:min(74%,360px);height:16px;background:#173349ed;border:1px solid #75e8f39c;border-radius:10px;overflow:hidden;text-align:center}
+#field-xp-fill{width:0;height:100%;background:linear-gradient(90deg,#00b5ff,#99fff0,#ffe078);transition:width .14s}
+#field-xp-label{position:absolute;inset:0;font-weight:1000;font-size:9px;line-height:15px;color:#fff;text-shadow:0 1px 3px #000}
+#stage-rule{position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 115px);max-width:42%;color:#fff;font-size:9px;line-height:1.45;font-weight:950;text-shadow:0 2px 5px #000}
 #boss-hud{display:none;position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 80px);transform:translateX(-50%);width:min(80%,440px);padding:8px 12px 9px;border-radius:12px;border:1px solid #ffadb899;background:linear-gradient(#391725f0,#220f1ce8);box-shadow:0 0 20px #ff45632c;text-align:center}
 #boss-hud .title{display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:.07em;font-weight:900}
 #boss-fill-bg{margin-top:6px;height:10px;border-radius:8px;background:#521d31;overflow:hidden}
@@ -74,12 +78,14 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
    <button id="audio" aria-label="音楽と効果音をオフにする">♫</button><button id="pause" aria-label="一時停止">Ⅱ</button>
   </div>
   <div id="progress"><div id="progress-fill"></div></div>
+  <div id="field-xp"><div id="field-xp-fill"></div><span id="field-xp-label">⚡ KILL ENERGY 0 / 4</span></div>
+  <div id="stage-rule">NORMAL RUN</div>
   <div id="boss-hud"><div class="title"><span id="boss-name">⚠ TITAN / BOSS</span><span id="phase-val">PHASE 1</span></div><div id="boss-fill-bg"><div id="boss-fill"></div></div></div>
   <div id="combo-hud"><small>🔥 KILL STREAK</small><b id="combo-val">0 ×</b></div>
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div id="bullets-hud" style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900;text-shadow:0 1px 5px #002">☀ SUNNY HARBOR</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v11</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v12</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -258,9 +264,62 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
-let bullets=[],runBuild=null,bossHits=0;
+let bullets=[],enemyShots=[],runBuild=null,bossHits=0,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
+function stageModifier(idx=stage){
+ return [
+  {id:'standard',name:'⚔ STANDARD',info:'敵を倒してエネルギーを集めろ',hp:1,speed:0,shot:1,boss:1,energy:1},
+  {id:'rush',name:'💨 SPEED RUSH',info:'敵の移動速度アップ',hp:1,speed:1.15,shot:.90,boss:1,energy:1},
+  {id:'armor',name:'🛡 ARMORED ZONE',info:'敵が硬い・撃破エネルギー+1',hp:1.32,speed:0,shot:1,boss:1.10,energy:2},
+  {id:'crossfire',name:'☄ CROSS FIRE',info:'敵の遠距離射撃が激化',hp:1.05,speed:.15,shot:.70,boss:1.06,energy:1}
+ ][(idx-1)%4];
+}
+function fieldOptionPool(){
+ const offense=[
+  {id:'rapid',icon:'⚡',title:'ラピッドファイア',desc:'このステージ中の連射速度 +25%'},
+  {id:'power',icon:'💥',title:'パワーショット',desc:'このステージ中の攻撃力 +28%'},
+  {id:'overdrive',icon:'🌟',title:'オーバードライブ',desc:'9秒間、主武器と支援兵器の火力 +80%'}
+ ];
+ const defense=[
+  {id:'team',icon:'👥',title:'緊急増援',desc:'隊員 +12人'},
+  {id:'repair',icon:'❤️',title:'クイックリペア',desc:'HPを35回復'},
+  {id:'armor',icon:'🛡',title:'アーマー強化',desc:'このステージ中のボス被害 -15%'}
+ ];
+ const support=[
+  {id:'drone',icon:'✦',title:'支援ドローン',desc:'ドローン +1 (最大4)'},
+  {id:'heli',icon:'🚁',title:'航空支援',desc:'ヘリ +1 (最大2)'},
+  {id:'turret',icon:'🔧',title:'自動砲台',desc:'砲台 +1 (最大2)'}
+ ].filter(o=>o.id==='drone'?player.drone<4:o.id==='heli'?player.heli<2:player.turret<2);
+ const random=a=>a[Math.floor(Math.random()*a.length)];
+ return [random(offense),random(defense),random(support.length?support:offense)];
+}
+function openFieldChoice(){
+ if(mode!=='playing'||fieldPicks>=fieldThresholds.length)return;
+ fieldChoicePending=false;mode='field-upgrade';const choices=fieldOptionPool();
+ show('<div class="eyebrow">⚡ KILL ENERGY FULL</div><h1>FIELD <em>UPGRADE!</em></h1><p>雑魚を倒して獲得！次の戦闘に備えて1つ選ぼう。</p><div class="upgrades">'+choices.map(o=>'<button class="upgrade" data-field="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div><div class="mini">戦闘は選択中、一時停止するよ</div>');
+ panel.querySelectorAll('[data-field]').forEach(btn=>btn.onclick=()=>{
+  if(mode!=='field-upgrade')return;
+  const id=btn.dataset.field;
+  if(id==='rapid')player.rate*=1.25;
+  if(id==='power')player.power*=1.28;
+  if(id==='overdrive')player.overdrive=Math.max(player.overdrive||0,9);
+  if(id==='team')player.team+=12;
+  if(id==='repair')player.hp=Math.min(player.maxHp,player.hp+35);
+  if(id==='armor')player.armor=Math.min(.7,player.armor+.15);
+  if(id==='drone')player.drone=Math.min(4,player.drone+1);
+  if(id==='heli')player.heli=Math.min(2,player.heli+1);
+  if(id==='turret')player.turret=Math.min(2,player.turret+1);
+  fieldPicks++;mode='playing';overlay.classList.add('off');cue(1000,.16);flash();announce('⚡ FIELD UPGRADE!',1.2);
+ });
+}
+function earnEnergy(amount=1){
+ if(fieldPicks>=fieldThresholds.length)return;
+ fieldCharge+=amount;
+ if(fieldCharge>=fieldThresholds[fieldPicks])fieldChoicePending=true;
+}
+
 function crowdHealth(baseHp,n){return Math.ceil(Math.max(baseHp*1.18,n*(6.5+stage*1.35)))}
 function stageTheme(idx=stage){
  const themes=[
@@ -344,8 +403,8 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];waveEvents=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
- const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor};squadBuffer=player.team;
+ t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const mob=(when,x,hp,n,type)=>spawn('mob',when,{x,hp,n,mobType:type});
  mob(.25,-1.15,mobHp,12,chooseMobType(0)); mob(1.45,1.08,mobHp+10,14,chooseMobType(1));
@@ -360,9 +419,9 @@ function reset(){
  spawn('crate',25.0,{x:-2.20,hp:crateHp+32,reward:'team'}); spawn('crate',26.45,{x:2.20,hp:crateHp+35,reward:'heli'}); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
  const sideLanes=[-2.4,0,2.4,-1.15,1.15];
  for(let i=0;i<6;i++)mob(6.1+i*3.55,sideLanes[(i*3+stage)%sideLanes.length],mobHp+15+i*5,15+(i%4)*3,chooseMobType(20+i));
- const bp=bossProfile(stage); spawn('boss',29.0,{hp:3200+stage*1500,bossType:bp.id});
+ const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*stageModifier().boss),bossType:bp.id});
  waveEvents.sort((a,b)=>a.when-b.when);
- $('stage-val').textContent=String(stage).padStart(2,'0'); announce('STAGE '+stage+' · '+stageTheme(stage).name,1.5);
+ $('stage-val').textContent=String(stage).padStart(2,'0'); announce('STAGE '+stage+' · '+stageModifier().name,1.5);
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;
  if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
@@ -371,7 +430,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">TRUE 3D • WEBGL v11 · HYPER PARADE</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br>雑魚もボスも複数タイプ登場。撃つほど、育つほど、司令官アバターも屈強に進化！</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
+ show(`<div class="eyebrow">TRUE 3D • WEBGL v12 · TACTICAL RUSH</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br>雑魚もボスも複数タイプ登場。撃つほど、育つほど、司令官アバターも屈強に進化！</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
