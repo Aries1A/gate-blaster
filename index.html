@@ -1204,30 +1204,84 @@ function world(){
 }
 
 function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1){
- const phase=walk*10+seed,legSwing=Math.sin(phase)*.11,armSwing=Math.sin(phase+PI)*.09;
- let head=C.skin,helmet=C.helmet,torso=C.blue,accent=C.blueLight,limb=C.blueDark,visor=C.allyGlow,sc=big,shield=false,spikes=false,brute=false,runner=false;
- if(playerSide){
-  const commander=variant==='commander',lvl=power; sc=big*(commander?1.10+.02*Math.min(8,lvl):1.0+.008*Math.min(10,lvl));
-  torso=commander?[.09,.41,.82,1]:C.blue; accent=commander?C.allyGold:C.blueLight; limb=commander?[.08,.24,.52,1]:C.blueDark; helmet=commander?[.07,.25,.49,1]:C.helmet; visor=commander?C.allyGold:C.allyGlow;
- }else{
-  const st=mobArchetype(variant); sc=big*(st.scale/.33); torso=st.body; accent=st.accent; limb=[st.body[0]*.55,st.body[1]*.55,st.body[2]*.55,1]; visor=st.visor; head=variant==='brute'?[.74,.53,.49,1]:variant==='guard'?[.88,.68,.62,1]:variant==='runner'?[.98,.72,.54,1]:C.zombie; helmet=limb; shield=variant==='guard'; spikes=variant==='runner'; brute=variant==='brute'; runner=variant==='runner';
+ // Chunky toy-soldier silhouette: helmet, face, vest, boots, backpack, oversized weapon.
+ // The same small mesh set is instanced for the entire crowd.
+ const phase=walk*10+seed,step=Math.sin(phase)*.12,arm=Math.sin(phase+PI)*.09;
+ const commander=playerSide&&variant==='commander',level=commander?power:1;
+ const kind=playerSide?'ally':variant,typ=playerSide?null:mobArchetype(variant);
+ const sc=big*(playerSide?(commander?1.12+.025*Math.min(12,level):1):typ.scale/.33);
+ const helmet=playerSide?(commander?C.allyGold:C.helmet):typ.body;
+ const armor=playerSide?(commander?C.blueDark:C.blue):typ.body;
+ const stripe=playerSide?(commander?C.allyGold:C.blueLight):typ.accent;
+ const pant=playerSide?C.blueDark:(variant==='brute'?C.redDark:C.pants);
+ const visor=playerSide?C.armorHi:(variant==='runner'?C.warn:typ.visor);
+ // Ground contact and boots.
+ sphere(x,.036,z,.82*sc,.045,.63*sc,C.shadow);
+ for(const sign of [-1,1]){
+  const ox=x+sign*.24*sc,forward=sign*step;
+  soft(ox,.46*sc,z+forward,.29*sc,.66*sc,.36*sc,pant);
+  soft(ox,.17*sc,z-.13*sc+forward,.35*sc,.22*sc,.53*sc,C.gun);
  }
- box(x,.02,z,.58*sc,.012,.48*sc,C.shadow); sphere(x,1.66*sc,z,.53*sc,.52*sc,.50*sc,head); box(x,1.99*sc,z-.04*sc,.56*sc,.20*sc,.54*sc,helmet); box(x,1.76*sc,z-.26*sc,.26*sc,.10*sc,.08*sc,visor);
- box(x,1.26*sc,z,.72*sc,.90*sc,.44*sc,torso); box(x,1.33*sc,z-.25*sc,.48*sc,.24*sc,.13*sc,accent); box(x-.29*sc,1.42*sc,z,.18*sc,.18*sc,.52*sc,accent); box(x+.29*sc,1.42*sc,z,.18*sc,.18*sc,.52*sc,accent);
- box(x-.22*sc,.63*sc,z+legSwing,.22*sc,.59*sc,.26*sc,limb); box(x+.22*sc,.63*sc,z-legSwing,.22*sc,.59*sc,.26*sc,limb); box(x-.47*sc,1.19*sc,z-armSwing,.20*sc,.66*sc,.24*sc,torso); box(x+.47*sc,1.19*sc,z+armSwing,.20*sc,.66*sc,.24*sc,torso);
- if(playerSide){ box(x+.42*sc,1.10*sc,z-.49*sc,.18*sc,.16*sc,1.02*sc,C.gun); box(x+.42*sc,1.15*sc,z-.92*sc,.24*sc,.10*sc,.24*sc,accent); if(power>=4){box(x-.38*sc,1.48*sc,z,.14*sc,.22*sc,.18*sc,C.allyGold);box(x+.38*sc,1.48*sc,z,.14*sc,.22*sc,.18*sc,C.allyGold)} if(power>=7)box(x,2.28*sc,z+.28*sc,.20*sc,.42*sc,.12*sc,C.allyGold); }
- else{ if(shield)box(x+.40*sc,1.16*sc,z-.48*sc,.16*sc,.70*sc,.78*sc,accent); else if(brute){sphere(x+.52*sc,1.03*sc,z-.22*sc,.28*sc,.28*sc,.28*sc,accent); sphere(x-.52*sc,1.03*sc,z+.22*sc,.28*sc,.28*sc,.28*sc,accent)} else box(x,1.68*sc,z-.235*sc,.34*sc,.10*sc,.11*sc,accent); if(spikes){box(x-.18*sc,2.16*sc,z+.22*sc,.12*sc,.18*sc,.18*sc,accent); box(x+.18*sc,2.16*sc,z+.22*sc,.12*sc,.18*sc,.18*sc,accent)} if(runner)box(x,1.05*sc,z+.52*sc,.14*sc,.16*sc,.46*sc,accent); }
+ // Waist, padded vest and a protruding equipment pack.
+ soft(x,.87*sc,z,.83*sc,.37*sc,.60*sc,armor);
+ soft(x,1.32*sc,z,.97*sc,.92*sc,.64*sc,armor);
+ soft(x,1.35*sc,z-.33*sc,.63*sc,.60*sc,.13*sc,stripe);
+ soft(x,1.29*sc,z+.38*sc,.63*sc,.58*sc,.22*sc,pant);
+ for(const sign of [-1,1])sphere(x+sign*.50*sc,1.60*sc,z,.30*sc,.28*sc,.31*sc,helmet);
+ // Head under a helmet brim; low-poly face gives a clear forward direction.
+ sphere(x,2.04*sc,z-.04*sc,.58*sc,.55*sc,.54*sc,C.skin);
+ sphere(x,2.32*sc,z+.06*sc,.65*sc,.35*sc,.61*sc,helmet);
+ soft(x,2.23*sc,z-.39*sc,.79*sc,.13*sc,.23*sc,helmet);
+ soft(x,2.10*sc,z-.54*sc,.53*sc,.18*sc,.13*sc,visor);
+ // Two arms move in opposition to the legs.
+ for(const sign of [-1,1]){
+  const ox=x+sign*.55*sc;
+  soft(ox,1.27*sc,z+sign*arm,.26*sc,.65*sc,.32*sc,armor);
+  sphere(ox,1.03*sc,z-.12*sc+sign*arm,.14*sc,.14*sc,.15*sc,C.skin);
+ }
+ if(playerSide){
+  // Large, unmistakable rifle; a brighter muzzle for the squad leader.
+  soft(x+.32*sc,1.21*sc,z-.65*sc,.25*sc,.23*sc,1.23*sc,C.gun);
+  box(x+.32*sc,1.24*sc,z-1.27*sc,.12*sc,.11*sc,.29*sc,stripe);
+  box(x+.28*sc,1.36*sc,z-.73*sc,.12*sc,.10*sc,.43*sc,C.armor);
+  if(commander){
+   // Armor progression must be visible, not only reflected in the HUD.
+   soft(x,1.47*sc,z-.37*sc,.72*sc,.22*sc,.15*sc,C.allyGold);
+   if(level>=4)for(const sign of [-1,1]){
+    soft(x+sign*.64*sc,1.68*sc,z,.33*sc,.35*sc,.53*sc,C.armor);
+    box(x+sign*.70*sc,1.76*sc,z-.29*sc,.12*sc,.11*sc,.16*sc,C.allyGold);
+   }
+   if(level>=7){
+    soft(x,2.47*sc,z+.10*sc,.72*sc,.16*sc,.55*sc,C.allyGold);
+    box(x,2.59*sc,z+.19*sc,.16*sc,.22*sc,.16*sc,C.warn);
+   }
+   if(level>=12){soft(x,1.33*sc,z-.52*sc,.83*sc,.80*sc,.12*sc,C.armorHi)}
+  }
+ }else if(kind==='guard'){
+  // Wide shield: guard can be identified without reading an HP value.
+  soft(x+.66*sc,1.30*sc,z-.53*sc,.19*sc,1.33*sc,1.04*sc,C.gun);
+  soft(x+.71*sc,1.35*sc,z-.64*sc,.10*sc,1.04*sc,.73*sc,stripe);
+  box(x+.79*sc,1.33*sc,z-.67*sc,.07*sc,.65*sc,.12*sc,C.warn);
+ }else if(kind==='brute'){
+  for(const sign of [-1,1])soft(x+sign*.77*sc,1.45*sc,z-.06*sc,.42*sc,.55*sc,.68*sc,C.redDark);
+  soft(x,1.12*sc,z-.45*sc,.77*sc,.46*sc,.19*sc,C.warn);
+ }else if(kind==='runner'){
+  for(const sign of [-1,1])box(x+sign*.16*sc,2.65*sc,z+.22*sc,.13*sc,.39*sc,.16*sc,stripe);
+  box(x,1.02*sc,z+.58*sc,.20*sc,.19*sc,.64*sc,C.warn);
+ }else{
+  soft(x,1.64*sc,z-.43*sc,.28*sc,.22*sc,.17*sc,C.redDark);
+ }
 }
 
 function drawMob(e){
  if(e.streamId){
   const col=mobArchetype(e.mobType);
-  if(e.z<-8){box(e.x,.56,e.z,.24,.72,.28,col.body);sphere(e.x,1.04,e.z,.22,.22,.22,col.accent)}
+  if(e.z<-12){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
   else soldier(e.x,e.z,false,e.seed,.33,e.mobType);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-8){box(x,.56,z,.24,.72,.28,mobArchetype(e.mobType).body); sphere(x,1.04,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType);}
+ for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-12){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function drawGate(e){
