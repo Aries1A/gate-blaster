@@ -696,11 +696,27 @@ function update(dt){
     e.used=true;
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate'){
-   if(e.open&&Math.abs(e.x-player.x)<1.07&&Math.abs(e.z-player.z)<.84){
-    reward(e);
-    e.used=true;
+   if(e.open){
+    // Opened crates are safe: collect the item by entering its lane.
+    if(Math.abs(e.x-player.x)<1.07&&Math.abs(e.z-player.z)<.84){
+     reward(e);e.used=true;
+    }
+   }else if(!e.touched&&Math.abs(e.z-player.z)<2.25){
+    // Count actual squad members overlapping the physical crate, not the player center.
+    const hit=formation().filter(f=>Math.abs(f.x-e.x)<.85&&Math.abs(f.z-e.z)<.68);
+    if(hit.length){
+     e.touched=true;e.used=true;
+     const lost=Math.min(Math.floor(player.team),hit.length);
+     if(lost>0){
+      player.team=Math.max(0,player.team-lost);
+      text('-'+lost,e.x,1.6,e.z,'#ff9bab',.85);
+      for(const f of hit.slice(0,10))burst(f.x,.72,f.z,C.redLight,4);
+      flash('hurt');cue(165,.19,'sawtooth',.045);
+      if(player.team<1)lose();
+     }
+    }
    }
-   if(e.z>player.z+1.35)e.used=true;
+   if(e.z>player.z+2.25)e.used=true;
   }
  }
  entities=entities.filter(e=>!e.used);
