@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v15</title>
+<title>GATE BLASTER · WEBGL v16</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -63,6 +63,33 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
 @media(prefers-reduced-motion:reduce){.victory i{animation:none;display:none}}
 #fail{display:none;position:absolute;z-index:8;inset:0;background:#061521;place-items:center;text-align:center;padding:20px}
 @media (max-width:360px){.pill{padding:6px}.pill .big{font-size:15px}.top{gap:4px}#pause{width:35px;height:37px}}
+
+/* Minimal, glanceable gameplay HUD. */
+.top{align-items:center;justify-content:center;gap:5px;margin-top:7px}
+.pill{display:flex;align-items:center;justify-content:center;gap:4px;flex:1;min-height:33px;min-width:0;padding:5px 6px;background:#061f36ce;border-color:#9fefff50;border-radius:10px}
+.pill .small{font-size:14px;line-height:1;color:#dbf5ff;letter-spacing:0}
+.pill .big{font-size:16px;line-height:1.2;font-variant-numeric:tabular-nums}
+#stage{flex:0 0 42px;min-width:0}
+#pause,#audio{width:32px;height:33px;border-radius:10px;font-size:17px}
+#pause:focus-visible,#audio:focus-visible,.upgrade:focus-visible,.cta:focus-visible{outline:2px solid #baffef;outline-offset:2px}
+#progress{margin-top:6px;width:min(70%,330px)}
+#field-xp{width:min(58%,270px);height:7px;margin:5px auto 0;border-color:#75e8f359}
+#field-xp-pips{display:flex;justify-content:center;gap:5px;margin:4px auto 0}
+#field-xp-pips i{display:block;width:6px;height:6px;border-radius:50%;background:#d8f2ff4d;border:1px solid #9ee8ff55}
+#field-xp-pips i.on{background:#ffe78a;box-shadow:0 0 8px #ffe05d}
+#stage-rule{left:11px;top:calc(env(safe-area-inset-top) + 80px);bottom:auto;display:grid;place-items:center;width:29px;height:27px;max-width:none;border:1px solid #9ce7ff55;border-radius:9px;background:#092a42c9;font-size:16px;line-height:1}
+#support-hud{right:11px;top:calc(env(safe-area-inset-top) + 83px);font-size:11px;line-height:1.5}
+#boss-hud{top:calc(env(safe-area-inset-top) + 114px);padding:5px 10px 7px}
+#boss-hud .title{font-size:10px;letter-spacing:.05em}
+#boss-fill-bg{margin-top:4px;height:9px}
+#combo-hud{top:calc(env(safe-area-inset-top) + 167px);min-width:0;padding:4px 11px}
+#combo-hud b{font-size:21px}
+#notice{top:calc(env(safe-area-inset-top) + 209px);font-size:17px}
+#boss-intro span{letter-spacing:.15em}
+.panel{padding:20px 17px}.upgrades{gap:8px;margin:13px 0 3px}
+.upgrade{gap:10px;padding:11px 12px}.upgrade .emoji{font-size:26px;width:35px}
+.upgrade b{font-size:15px}.upgrade small{margin-top:2px}.stats{margin:10px 0}
+@media(max-width:360px){.pill{padding:4px 3px;gap:3px}.pill .small{font-size:12px}.pill .big{font-size:14px}.top{gap:3px}#stage{flex-basis:35px}#pause,#audio{width:29px;height:32px;font-size:15px}}
 </style>
 </head>
 <body>
@@ -71,24 +98,23 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
  <canvas id="labels"></canvas>
  <div id="hud">
   <div class="top">
-   <div id="stage" class="pill"><div class="small">STAGE</div><div class="big" id="stage-val">01</div></div>
-   <div class="pill"><div class="small">👥 TEAM</div><div class="big cyan" id="team-val">13</div></div>
-   <div class="pill"><div class="small">🔫 WEAPON</div><div class="big gold" id="weapon-val">LV 1</div></div>
-   <div class="pill"><div class="small">❤️ HP</div><div class="big" id="hp-val">100</div></div>
+   <div id="stage" class="pill" aria-label="ステージ"><div class="big" id="stage-val">01</div></div>
+   <div class="pill" aria-label="人数"><span class="small" aria-hidden="true">👥</span><div class="big cyan" id="team-val">13</div></div>
+   <div class="pill" aria-label="武器レベル"><span class="small" aria-hidden="true">🔫</span><div class="big gold" id="weapon-val">1</div></div>
+   <div class="pill" aria-label="HP"><span class="small" aria-hidden="true">❤️</span><div class="big" id="hp-val">100</div></div>
    <button id="audio" aria-label="音楽と効果音をオフにする">♫</button><button id="pause" aria-label="一時停止">Ⅱ</button>
   </div>
   <div id="progress"><div id="progress-fill"></div></div>
-  <div id="field-xp"><div id="field-xp-fill"></div><span id="field-xp-label">⚡ KILL ENERGY 0 / 4</span></div>
-  <div id="stage-rule">NORMAL RUN</div>
-  <div id="boss-hud"><div class="title"><span id="boss-name">⚠ TITAN / BOSS</span><span id="phase-val">PHASE 1</span></div><div id="boss-fill-bg"><div id="boss-fill"></div></div></div>
-  <div id="combo-hud"><small>🔥 KILL STREAK</small><b id="combo-val">0 ×</b></div>
-  <div id="support-hud">🚁 0　🔧 0</div>
+  <div id="field-xp" role="progressbar" aria-label="撃破エネルギー" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div id="field-xp-fill"></div></div>
+  <div id="field-xp-pips" aria-label="獲得したフィールド強化"><i></i><i></i><i></i></div>
+  <div id="stage-rule" title="ステージルール">⚔</div>
+  <div id="boss-hud"><div class="title"><span id="boss-name">BOSS</span><span id="phase-val">I</span></div><div id="boss-fill-bg"><div id="boss-fill"></div></div></div>
+  <div id="combo-hud"><b id="combo-val">0×</b></div>
+  <div id="support-hud">🚁0 🔧0</div>
   <div id="notice"></div>
-  <div id="bullets-hud" style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900;text-shadow:0 1px 5px #002">☀ SUNNY HARBOR</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v15</div><div class="hint">👥 通過中に1人ずつ増員<br>★ 箱を開けて回収</div></div>
  </div>
  <div id="impact-flash"></div>
- <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
+ <div id="boss-intro"><span>⚠ BOSS</span><b>MEGA TITAN</b></div>
  <div id="overlay"><div class="panel" id="panel"></div></div>
  <div id="fail"><div><h1>WebGL 2 が使えません</h1><p>Safariの最新版で開き直すか、WebGL対応ブラウザをお試しください。</p></div></div>
 </main>
@@ -436,7 +462,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">TRUE 3D • WEBGL v15 · SKILL ROUTES</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br><b>箱を取るか、ゲートで人数を増やすか、腕次第で両方も！</b> 箱は撃って開け、レーンに入って回収。ゲートは通過中に1人ずつ増える。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
+ show(`<div class="eyebrow">TRUE 3D • WEBGL v16 · CLEAN HUD</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br><b>箱を取るか、ゲートで人数を増やすか、腕次第で両方も！</b> 箱は撃って開け、レーンに入って回収。ゲートは通過中に1人ずつ増える。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -864,16 +890,23 @@ function tag(value,x,y,color,bg,scale){
 
 function updateHUD(){
  if(!player)return;
- $('team-val').textContent=String(Math.max(0,Math.floor(player.team))); $('weapon-val').textContent='LV '+player.weapon; $('hp-val').textContent=String(Math.max(0,Math.ceil(player.hp)));
- $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%'; $('boss-hud').style.display=boss&&!boss.used?'block':'none'; $('combo-val').textContent=combo+' ×'; $('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
- $('support-hud').innerHTML='💪 LV '+commanderLevel()+(player.overdrive>0?'<br>🌟 OVERDRIVE '+Math.ceil(player.overdrive)+'s':'')+'<br>🚁 '+player.heli+'　🔧 '+player.turret+'　✦ '+player.drone;
- $('bullets-hud').textContent=stageTheme(stage).name;
- $('stage-rule').textContent=stageModifier().name+' · '+stageModifier().info;
+ $('team-val').textContent=String(Math.max(0,Math.floor(player.team)));
+ $('weapon-val').textContent=String(player.weapon);
+ $('hp-val').textContent=String(Math.max(0,Math.ceil(player.hp)));
+ $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%';
+ $('boss-hud').style.display=boss&&!boss.used?'block':'none';
+ $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
+ $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
+ const rule=stageModifier();$('stage-rule').textContent=rule.name.split(' ')[0];$('stage-rule').title=rule.name+' · '+rule.info;
  const prev=fieldPicks>0?fieldThresholds[fieldPicks-1]:0,next=fieldThresholds[fieldPicks];
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
- $('field-xp-label').textContent=next===undefined?'⚡ ALL FIELD UPGRADES UNLOCKED':'⚡ KILL ENERGY '+Math.max(0,fieldCharge-prev)+' / '+(next-prev);
+ $('field-xp').setAttribute('aria-valuemin',String(prev));
+ $('field-xp').setAttribute('aria-valuemax',String(next===undefined?prev:next));
+ $('field-xp').setAttribute('aria-valuenow',String(Math.min(fieldCharge,next===undefined?fieldCharge:next)));
+ const pips=$('field-xp-pips').children;
+ for(let i=0;i<pips.length;i++)pips[i].classList.toggle('on',i<fieldPicks);
  impactFlash.style.opacity=flashTime>0?'1':'0';
- if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%'; $('phase-val').textContent=bossSiege?'☄ TARGET LOCK':'PHASE '+boss.phase; $('boss-name').textContent='⚠ '+boss.name+' / BOSS'}
+ if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':['I','II','III'][boss.phase-1];$('boss-name').textContent=boss.name}
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
 function pointerX(e){const r=glCanvas.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width*2-1,-1,1)}
