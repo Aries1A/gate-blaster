@@ -115,6 +115,98 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
 .panel{max-height:calc(100dvh - 38px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
 .final-banner{font-size:11px;color:#ffe6a4;font-weight:900;letter-spacing:.08em;margin:3px 0}
 @media(max-width:360px){.path-node{flex-basis:31px;width:31px;height:31px}.path-node.special{font-size:16px}.stage-path{margin:8px auto}}
+
+/* v25 bright arcade / soft-plastic art direction. Keep text short and readable. */
+:root{font-family:ui-rounded,"Arial Rounded MT Bold",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
+#game{background:#b6e3fa}
+#hud .top{gap:5px;margin-top:9px}
+#hud .pill{
+ background:linear-gradient(150deg,#10436ef2,#0b294cde);
+ border:1.5px solid #b8edffb9;
+ border-bottom:3px solid #082440a9;
+ box-shadow:inset 0 1px 0 #ffffff54,0 3px 9px #17395c38;
+ border-radius:13px;
+}
+#hud .pill .big{font-size:16px;font-weight:1000;letter-spacing:.015em;text-shadow:0 2px 2px #00182d}
+#stage{background:linear-gradient(165deg,#2b66a0,#103c70)!important;border-color:#b8deff!important}
+#stage-val{color:#fff1ac;font-size:17px!important}
+#pause,#audio{
+ background:linear-gradient(150deg,#3271a8,#0b365c);
+ border:1.5px solid #c5eeff;
+ border-bottom:3px solid #062d52;
+ border-radius:11px;
+ box-shadow:inset 0 1px #ffffff7a,0 3px 8px #07335545;
+}
+#audio.on{background:linear-gradient(150deg,#2caeaf,#0b687e);border-color:#afffed;color:#e8ffdf}
+#progress{background:#104465ac;border:1px solid #d6f7ff9c;height:7px;border-radius:8px}
+#progress-fill{background:linear-gradient(90deg,#4dcdf5,#9bfff2,#ffe995);box-shadow:0 0 7px #8ef4fc}
+#field-xp{height:9px;border:1px solid #baf7f5;background:#16445a9c}
+#field-xp-fill{background:linear-gradient(90deg,#2bd2ee,#8affd3,#ffe07e)}
+#field-xp-pips i{width:7px;height:7px;border-color:#c5f5ed}
+#stage-rule{border:1.5px solid #ccefff;background:#0d4475eb;border-radius:9px;box-shadow:0 3px 8px #153c5855}
+#game[data-stage="3"] #stage-rule{background:linear-gradient(130deg,#ee8527,#c94c31);border-color:#fff0a5;box-shadow:0 0 12px #ffcd5980}
+#game[data-stage="5"] #stage-rule{background:linear-gradient(130deg,#ae7632,#704a35);border-color:#fff0a5}
+#support-hud{color:#fffceb;text-shadow:0 2px 4px #073252,0 0 4px #073252;font-weight:1000}
+#boss-hud{
+ border:2px solid #ffe1ae;
+ border-bottom:4px solid #853e48;
+ border-radius:14px;
+ background:linear-gradient(160deg,#63333ff5,#331a30f5);
+ box-shadow:0 5px 0 #26122d8c,0 0 20px #ff9b5770;
+}
+#boss-hud .title{color:#ffe8b5;font-size:11px}
+#boss-fill-bg{height:12px;background:#311722;border:1px solid #d4867b70}
+#boss-fill{background:linear-gradient(90deg,#ffd963,#ff8b4b,#ef4564)}
+#notice{color:#fff4c6;text-shadow:0 2px 4px #3b2331,0 0 15px #e86e3f,0 3px 10px #4d2849;font-size:19px;letter-spacing:.025em}
+#combo-hud{border:2px solid #ffe6a6;border-bottom:3px solid #ad6024;background:linear-gradient(135deg,#9a5a2ae8,#54315be8);box-shadow:0 5px 14px #713a4a55}
+#combo-hud b{color:#ffedaa}
+#overlay{
+ background:linear-gradient(165deg,#0b3d66db,#061e3cef);
+ backdrop-filter:blur(5px);
+}
+.panel{
+ border:2px solid #a8e5fb;
+ border-bottom:5px solid #113b5a;
+ border-radius:24px;
+ background:linear-gradient(164deg,#1a557ceF,#0b3454f7 60%,#08253ff7);
+ box-shadow:inset 0 2px #ffffff30,0 16px 60px #00101ea8;
+}
+.eyebrow{color:#a6ffe3;letter-spacing:.17em;font-size:11px}
+h1{font-weight:1000;text-shadow:0 3px 0 #173044,0 6px 17px #001a2b6e}
+h1 em{color:#ffd96f}
+.cta{
+ border:1px solid #fff4a4;border-bottom:4px solid #b97d20;border-radius:15px;
+ padding:14px 11px;
+ background:linear-gradient(170deg,#fff4a7,#ffc95e);
+ color:#523710;box-shadow:inset 0 2px #ffffff99,0 6px 0 #8d5725,0 10px 20px #001a2b7d;
+}
+.cta:active{transform:translateY(3px);box-shadow:inset 0 1px #fff9d3,0 2px 0 #8d5725}
+.upgrades{gap:9px}
+.upgrade{
+ background:linear-gradient(165deg,#255b80,#123c64);
+ border:1.5px solid #a4dff0;
+ border-bottom:3px solid #092841;
+ border-radius:15px;
+ box-shadow:inset 0 1px #ffffff38,0 4px 10px #00203936;
+ gap:10px;padding:11px 10px;color:#fff;
+}
+.upgrade .emoji{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:12px;background:linear-gradient(160deg,#ffe5a0,#e3a63c);box-shadow:inset 0 1px #fff8d8,0 3px #996124;border:1px solid #fff1ae;font-size:27px;color:#132f43}
+.upgrade b{font-size:15px;color:#fff8d9}.upgrade small{font-size:11px;color:#c3eeff}
+.upgrade:active{transform:scale(.982)}
+.stats{gap:7px}
+.stat{border:1px solid #b5e7ef85;background:#2e678559;border-radius:12px}
+.stat strong{color:#ffe395}
+.stage-path{margin:13px auto}
+.path-node{border:2px solid #88b9d2;background:#0c2c4a;color:#d0d8e0;box-shadow:inset 0 1px #ffffff3d,0 3px 0 #08263e}
+.path-node.done{color:#082b38;background:linear-gradient(150deg,#f4ffe9,#74eed4);border-color:#cefff0;box-shadow:0 0 14px #8ef9d478,0 3px #20857c}
+.path-node.now{color:#573409;background:linear-gradient(145deg,#fff5c9,#ffbd57);border-color:#fff8c1;box-shadow:0 0 14px #ffe39493,0 3px #9c6330}
+.path-link{height:5px;background:#527997}
+.path-link.done{background:linear-gradient(90deg,#75f0dc,#ffe08e);box-shadow:0 0 9px #81ffdda1}
+#boss-intro b{color:#ffe5a5;text-shadow:0 4px #5b2636,0 0 23px #ff6345}
+#boss-intro span{color:#fff2cb}
+.settings-panel{border:2px solid #adf0fd;border-bottom:4px solid #073a52;background:linear-gradient(150deg,#225c82,#0e3256)}
+#settings-close{margin-top:8px}
+@media(max-width:360px){#hud .pill{padding:4px 3px}#hud .pill .big{font-size:14px}.upgrade .emoji{width:41px;flex-basis:41px;height:42px}}
 </style>
 </head>
 <body>
@@ -614,6 +706,7 @@ function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
  t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];bossIntro.classList.remove('show');
+ $('game').dataset.stage=String(stage);
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
