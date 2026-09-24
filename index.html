@@ -572,7 +572,7 @@ function cue(freq=640,duration=.08,type='triangle',volume=.035){
 function flash(col='hit'){flashTime=.17;impactFlash.style.background=col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)'}
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
 
-try{best=Number(localStorage.getItem('gate-blaster-webgl-best'))||1}catch(e){}
+try{best=clamp(Number(localStorage.getItem('gate-blaster-webgl-best'))||1,1,5)}catch(e){}
 function text(msg,x,y,z,color='#fff',life=.85){texts.push({msg,x,y,z,color,life,max:life})}
 function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';noticeTime=dur}
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
@@ -622,41 +622,113 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v23</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v23 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
-function win(){
- if(mode!=='playing')return;bossSiege=null;
- mode='win';best=Math.max(best,stage+1);try{localStorage.setItem('gate-blaster-webgl-best',String(best))}catch(e){}
+function campaignStats(){
+ return '<div class="stats"><div class="stat"><strong>👥 '+Math.floor(player.team)+'</strong></div><div class="stat"><strong>⚡ '+kills+'</strong></div><div class="stat"><strong>🔥 '+maxCombo+'×</strong></div></div>';
+}
+function selectPersistentUpgrade(id){
+ if(id==='power')runBuild.power*=1.25;
+ if(id==='team')runBuild.team+=8;
+ if(id==='weapon')runBuild.weapon=Math.min(9,runBuild.weapon+1);
+ if(id==='rate')runBuild.rate*=1.2;
+ if(id==='hp')runBuild.maxHp+=35;
+ if(id==='armor')runBuild.armor=Math.min(.6,runBuild.armor+.15);
+ if(id==='drone')runBuild.drone=Math.min(4,runBuild.drone+1);
+ if(id==='heli')runBuild.heli=Math.min(2,runBuild.heli+1);
+ if(id==='turret')runBuild.turret=Math.min(2,runBuild.turret+1);
+}
+function stageClear(){
+ mode='win';bossSiege=null;warning=null;
+ best=Math.min(5,Math.max(best,stage+1));
+ try{localStorage.setItem('gate-blaster-webgl-best',String(best))}catch(e){}
  cue(920,.33,'sawtooth',.055);flash();
- const bits=Array.from({length:44},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${2.1+(i%5)*.45}s;--delay:${-(i%7)*.42}s;--r:${i*29}deg;--s:${(i%2?-1:1)*(18+i%24)}vw;--c:${['#ffd65c','#63ffe8','#ff617b','#70abff'][i%4]}"></i>`).join('');
- const pool=[
+ // Each inter-stage choice offers offense, survival, and support: no dead options.
+ const offense=[
   {id:'power',icon:'💥',title:'火力 +25%',desc:'弾・支援 +25%'},
-  {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
   {id:'weapon',icon:'🔫',title:'武器 +1',desc:'武器 +1'},
-  {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'},
+  {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'}];
+ const survival=[
+  {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
   {id:'hp',icon:'❤️',title:'HP +35',desc:'HP上限 +35'},
-  {id:'armor',icon:'🛡️',title:'防御 +15%',desc:'ボス被害 -15%'},
+  {id:'armor',icon:'🛡️',title:'防御 +15%',desc:'ボス被害 -15%'}];
+ const support=[
+  {id:'drone',icon:'✦',title:'ドローン +1',desc:'✦ +1'},
   {id:'heli',icon:'🚁',title:'ヘリ +1',desc:'🚁 +1'},
   {id:'turret',icon:'🔧',title:'砲台 +1',desc:'🔧 +1'}
- ].filter(o=>o.id!=='heli'||runBuild.heli<2).filter(o=>o.id!=='turret'||runBuild.turret<2);
- const choices=[];while(choices.length<3&&pool.length)choices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
- show(`<div class="victory">${bits}</div><div class="eyebrow">STAGE ${stage}</div><h1>✦ <em>CLEAR!</em></h1><div class="stats"><div class="stat"><strong>👥 ${Math.floor(player.team)}</strong></div><div class="stat"><strong>⚡ ${kills}</strong></div><div class="stat"><strong>🔥 ${maxCombo}×</strong></div></div><div class="upgrades">${choices.map(o=>`<button class="upgrade" data-up="${o.id}"><span class="emoji">${o.icon}</span><span><b>${o.title}</b><small>${o.desc}</small></span></button>`).join('')}</div>`);
+ ].filter(o=>o.id==='drone'?runBuild.drone<4:o.id==='heli'?runBuild.heli<2:runBuild.turret<2);
+ const choose=list=>list[Math.floor(Math.random()*list.length)];
+ const options=[choose(offense),choose(survival),choose(support.length?support:offense.filter(o=>o.id!==offense[0].id))];
+ show('<div class="eyebrow">STAGE '+stage+' CLEAR</div>'+stagePath(stage,stage+1)+'<h1>✦ <em>CLEAR!</em></h1>'+campaignStats()+
+ '<div class="upgrades">'+options.map(o=>'<button class="upgrade" data-up="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
  panel.querySelectorAll('[data-up]').forEach(btn=>btn.onclick=()=>{
-  const id=btn.dataset.up;
-  if(id==='power')runBuild.power*=1.25;
-  if(id==='team')runBuild.team+=8;
-  if(id==='weapon')runBuild.weapon=Math.min(9,runBuild.weapon+1);
-  if(id==='rate')runBuild.rate*=1.2;
-  if(id==='hp')runBuild.maxHp+=35;
-  if(id==='armor')runBuild.armor=Math.min(.6,runBuild.armor+.15);
-  if(id==='heli')runBuild.heli=Math.min(2,runBuild.heli+1);
-  if(id==='turret')runBuild.turret=Math.min(2,runBuild.turret+1);
+  if(mode!=='win')return;
+  selectPersistentUpgrade(btn.dataset.up);
   cue(1000,.20);stage++;start();
  });
 }
-function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage}</div><h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best}</div>`);$('retry').onclick=beginRun}
+function launchRushBoss(){
+ const parts=bossRushList(),part=parts[rushIndex];
+ if(!part||mode!=='playing')return;
+ rushIndex++;
+ const hp=Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*part.factor);
+ doSpawn({kind:'boss',when:t,bossType:part.id,rushPart:rushIndex,hp});
+ announce('👑 '+rushIndex+'/'+parts.length,1.8);
+}
+function finalBuildChoice(){
+ rushStarted=true;mode='final-upgrade';bossSiege=null;warning=null;
+ enemyShots=[];bullets=[];entities=[];streams=[];streamGroups={};fieldChoicePending=false;
+ cue(960,.22,'triangle',.06);
+ const options=[
+  {id:'burst',icon:'💥',title:'決戦火力',desc:'火力 +45% · 連射 +8%'},
+  {id:'supply',icon:'🛡️',title:'補給',desc:'人数 +14 · HP +40'},
+  {id:'support',icon:'🚁',title:'支援強化',desc:'ヘリ / 砲台 / ドローン'}
+ ];
+ show('<div class="eyebrow">👑 FINAL BUILD</div>'+stagePath(4,5)+'<h1>BOSS <em>RUSH!</em></h1><div class="final-banner">3 BOSSES · 1 BUILD</div>'+
+ '<div class="upgrades">'+options.map(o=>'<button class="upgrade" data-final="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
+ panel.querySelectorAll('[data-final]').forEach(btn=>btn.onclick=()=>{
+  if(mode!=='final-upgrade')return;
+  const id=btn.dataset.final;
+  if(id==='burst'){player.power*=1.45;player.rate*=1.08}
+  if(id==='supply'){player.team+=14;player.hp=Math.min(player.maxHp,player.hp+40);player.armor=Math.min(.7,player.armor+.09)}
+  if(id==='support'){
+   if(player.heli<2)player.heli++;
+   else if(player.turret<2)player.turret++;
+   else if(player.drone<4)player.drone++;
+   else player.power*=1.35;
+   player.drone=Math.min(4,player.drone+1);
+  }
+  mode='playing';overlay.classList.add('off');rushDelay=1.4;
+  cue(1080,.26,'triangle',.065);announce('👑 BOSS RUSH',1.4);
+ });
+}
+function campaignVictory(){
+ mode='finished';bossSiege=null;warning=null;rushDelay=0;best=5;
+ try{localStorage.setItem('gate-blaster-webgl-best','5')}catch(e){}
+ cue(1080,.42,'triangle',.065);flash();
+ const bits=Array.from({length:40},(_,i)=>'<i style="--x:'+(i*37)%100+'%;--d:'+(2.1+(i%5)*.45)+'s;--delay:'+-((i%7)*.42)+'s;--r:'+(i*29)+'deg;--s:'+((i%2?-1:1)*(18+i%24))+'vw;--c:'+['#ffd65c','#63ffe8','#ff617b','#70abff'][i%4]+'"></i>').join('');
+ show('<div class="victory">'+bits+'</div><div class="eyebrow">5 / 5 STAGES</div>'+stagePath(5,0)+'<h1>🏆 <em>VICTORY!</em></h1><div class="final-banner">BOSS RUSH COMPLETE</div>'+campaignStats()+'<button class="cta" id="retry">↻ PLAY AGAIN</button>');
+ $('retry').onclick=beginRun;
+}
+function win(){
+ if(mode!=='playing')return;
+ if(stage<5){stageClear();return}
+ if(!rushStarted){finalBuildChoice();return}
+ if(rushIndex<bossRushList().length){
+  // Short resupply and distinct new boss, within stage 5.
+  boss=null;bossSiege=null;warning=null;enemyShots=[];bullets=[];entities=[];streams=[];streamGroups={};fieldChoicePending=false;
+  player.hp=Math.min(player.maxHp,player.hp+9);
+  player.team+=4;
+  rushDelay=1.6;
+  cue(960,.22,'triangle',.05);
+  announce('👑 '+(rushIndex+1)+'/'+bossRushList().length,1.45);
+  return;
+ }
+ campaignVictory();
+}
+function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage} / 5</div>${stagePath(stage-1,stage)}<h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best} / 5</div>`);$('retry').onclick=beginRun}
 
 function doSpawn(e){
  if(e.kind==='stream'){
