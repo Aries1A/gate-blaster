@@ -849,7 +849,7 @@ function finalBuildChoice(){
   if(mode!=='final-upgrade')return;
   const id=btn.dataset.final;
   if(id==='burst'){player.power*=1.45;player.rate*=1.08}
-  if(id==='supply'){player.team+=14;player.hp=Math.min(player.maxHp,player.hp+40);player.armor=Math.min(.7,player.armor+.09)}
+  if(id==='supply'){player.team+=14;player.maxHp+=40;player.hp=Math.min(player.maxHp,player.hp+40);player.armor=Math.min(.7,player.armor+.09)}
   if(id==='support'){
    if(player.heli<2)player.heli++;
    else if(player.turret<2)player.turret++;
@@ -857,6 +857,7 @@ function finalBuildChoice(){
    else player.power*=1.35;
    player.drone=Math.min(4,player.drone+1);
   }
+  fieldPicks=fieldThresholds.length;fieldChoicePending=false;
   mode='playing';overlay.classList.add('off');rushDelay=1.4;
   cue(1080,.26,'triangle',.065);announce('👑 BOSS RUSH',1.4);
  });
