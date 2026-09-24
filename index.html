@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v16</title>
+<title>GATE BLASTER · WEBGL v17</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -290,10 +290,11 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
-let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
+function feverStage(index=stage){return index>=3&&(index-3)%4===0;}
 function stageModifier(idx=stage){
  return [
   {id:'standard',name:'⚔ STANDARD',info:'敵を倒してエネルギーを集めろ',hp:1,speed:0,shot:1,boss:1,energy:1},
@@ -434,7 +435,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
@@ -451,9 +452,19 @@ function reset(){
  choice('route5',25.0,2.25,-2.20,32+stage*3,crateHp+35,'weapon'); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
  const sideLanes=[-2.4,0,2.4,-1.15,1.15];
  for(let i=0;i<6;i++)mob(6.1+i*3.55,sideLanes[(i*3+stage)%sideLanes.length],mobHp+15+i*5,15+(i%4)*3,chooseMobType(20+i));
+ if(fever){
+  const prizes=['weapon','team','drone','weapon','heli','team','turret','weapon'];
+  const lanes=[-2.25,2.25,2.25,-2.25,-2.25,2.25,-2.25,2.25];
+  for(let i=0;i<8;i++){
+   spawn('crate',2.9+i*2.85,{x:lanes[i],hp:Math.ceil(crateHp*.83)+i*3,reward:prizes[i],feverBonus:true});
+  }
+  for(let i=0;i<9;i++){
+   mob(3.05+i*2.55,[-1.65,1.55,0,1.8,-1.75][i%5],mobHp+18+i*5,11+(i%4)*2,chooseMobType(32+i));
+  }
+ }
  const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss),bossType:bp.id});
  waveEvents.sort((a,b)=>a.when-b.when);
- $('stage-val').textContent=String(stage).padStart(2,'0'); announce('STAGE '+stage+' '+stageModifier().name.split(' ')[0],1.5);
+ $('stage-val').textContent=String(stage).padStart(2,'0'); announce(fever?'🔥 FEVER!':'STAGE '+stage+' '+stageModifier().name.split(' ')[0],1.5);
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;
  if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
@@ -462,7 +473,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v16</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v17</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -504,7 +515,7 @@ function doSpawn(e){
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
  }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,progress:0,length:8.5,used:false});
- else if(e.kind==='crate'){const hp=crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,hit:0,open:false,used:false});}
+ else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,open:false,used:false});}
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
   boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
@@ -896,7 +907,7 @@ function updateHUD(){
  $('boss-hud').style.display=boss&&!boss.used?'block':'none';
  $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
  $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
- const rule=stageModifier();$('stage-rule').textContent=rule.name.split(' ')[0];$('stage-rule').title=rule.name+' · '+rule.info;
+ const rule=stageModifier();$('stage-rule').textContent=fever?'🔥':rule.name.split(' ')[0];$('stage-rule').title=fever?'FEVER · '+rule.name:rule.name+' · '+rule.info;
  const prev=fieldPicks>0?fieldThresholds[fieldPicks-1]:0,next=fieldThresholds[fieldPicks];
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
  $('field-xp').setAttribute('aria-valuemin',String(prev));
