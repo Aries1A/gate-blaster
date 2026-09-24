@@ -1285,35 +1285,70 @@ function drawMob(e){
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function drawGate(e){
- const segments=17;
- for(let i=0;i<segments;i++){
-  const z=e.z+(i-(segments-1)/2)*(e.length/segments),y=.18+i*.008,alive=e.taken<e.gain;
-  box(e.x,y,z,2.36,.31,e.length/segments-.035,alive?C.blue:C.blueDark);
-  box(e.x-1.2,.31,z,.09,.51,e.length/segments-.035,C.blueLight);
-  box(e.x+1.2,.31,z,.09,.51,e.length/segments-.035,C.blueLight);
+ const front=e.z-e.length/2,live=e.taken<e.gain;
+ const panel=live?C.blue:C.blueDark,trim=live?C.cyan:C.seam;
+ // A readable portal/conveyor: thick rounded side rails, lit lanes and a gate arch.
+ soft(e.x,.22,e.z,2.50,.22,e.length,panel);
+ for(const sign of [-1,1]){
+  soft(e.x+sign*1.27,.40,e.z,.18,.40,e.length,trim);
+  for(let i=0;i<5;i++){
+   const z=e.z-e.length*.40+i*(e.length*.20);
+   box(e.x+sign*1.16,.66,z,.10,.07,.43,C.armorHi);
+  }
+  soft(e.x+sign*1.29,1.35,front,.25,2.55,.33,C.armorHi);
+  soft(e.x+sign*1.30,1.55,front-.20,.10,1.92,.18,trim);
+  sphere(e.x+sign*1.3,2.67,front,.28,.28,.28,C.warn);
  }
- // floating portal bracket
- for(const x of [e.x-1.2,e.x+1.2])box(x,1.0,e.z-e.length/2,.12,1.8,.14,C.blueLight);
- box(e.x,1.95,e.z-e.length/2,2.56,.2,.18,C.blueLight);
+ soft(e.x,2.69,front,2.82,.35,.49,C.blueDark);
+ soft(e.x,2.71,front-.28,2.45,.18,.23,trim);
+ // Embossed people silhouettes repeat along the active gate.
+ if(live){
+  for(const dx of [-.43,0,.43]){
+   sphere(e.x+dx,2.77,front-.41,.14,.14,.14,C.armorHi);
+   soft(e.x+dx,2.56,front-.42,.17,.24,.10,C.armorHi);
+  }
+ }
+ for(let i=0;i<8;i++){
+  const z=e.z+(i-3.5)*(e.length/8),active=live&&Math.sin(walk*7+i*.7)>-.35;
+  box(e.x,.339,z,1.82,.014,.065,active?C.armorHi:C.blueDark);
+ }
 }
 function drawCrate(e){
-
- box(e.x,.66,e.z,1.65,1.3,1.2,e.hit>0?C.white:C.wood);
- box(e.x,1.34,e.z,1.72,.12,1.27,C.woodTop);
- box(e.x-.86,.67,e.z,.12,1.22,1.27,C.woodTop);
- box(e.x+.86,.67,e.z,.12,1.22,1.27,C.woodTop);
- box(e.x,.69,e.z-.63,1.48,.13,.09,C.gold);
- box(e.x,.69,e.z+.63,1.48,.13,.09,C.gold);
- box(e.x,.65,e.z,1.8,.06,.08,C.gold);
+ // A beveled loot case, with a large readable top emblem and side locks.
+ sphere(e.x,.055,e.z,1.75,.04,1.34,C.shadow);
+ soft(e.x,.68,e.z,1.75,1.30,1.27,e.hit>0?C.armorHi:C.wood);
+ soft(e.x,1.32,e.z,1.82,.17,1.35,C.woodTop);
+ for(const sign of [-1,1]){
+  soft(e.x+sign*.79,.65,e.z,.15,1.16,1.28,C.gold);
+  soft(e.x+sign*.43,1.36,e.z,.13,.18,1.37,C.armorHi);
+  sphere(e.x+sign*.68,.90,e.z-.66,.13,.13,.09,C.gun);
+ }
+ soft(e.x,.69,e.z-.67,1.40,.23,.12,C.warn);
+ soft(e.x,.68,e.z+.68,1.40,.23,.12,C.gold);
+ soft(e.x,1.06,e.z-.69,.40,.34,.10,C.blueDark);
+ soft(e.x,1.08,e.z-.76,.21,.18,.10,C.armorHi);
+ // A metallic progress rail on top, readable without requiring large text.
  const frac=clamp(e.hp/e.maxHp,0,1);
- box(e.x,1.75,e.z,1.55,.12,.12,C.gun);
- box(e.x-.775*(1-frac),1.77,e.z-.004,1.55*frac,.14,.13,C.cyan);
- if(e.reward==='heli'){sphere(e.x,2.06,e.z,.83,.34,.50,C.heli);box(e.x,2.30,e.z,1.3,.06,.08,C.gun)}
- else if(e.reward==='turret'){cyl(e.x,1.96,e.z,.67,.47,.67,C.blueDark);box(e.x,2.21,e.z-.35,.18,.18,1.15,C.gun)}
- else if(e.reward==='drone'){
-  cyl(e.x,1.75,e.z,.50,.34,.50,C.blueLight);box(e.x,1.93,e.z,1.20,.055,.10,C.gun);
- }else if(e.reward==='weapon'){box(e.x,1.95,e.z,1.10,.13,.31,C.gun);box(e.x+.32,1.82,e.z-.22,.23,.34,.56,C.blueLight)}
- else sphere(e.x,1.93,e.z,.48,.48,.48,C.blueLight);
+ soft(e.x,1.65,e.z,1.56,.13,.14,C.gun);
+ soft(e.x-.78*(1-frac),1.69,e.z-.009,1.56*frac,.14,.17,frac>.45?C.cyan:C.warn);
+ const bounce=.05*Math.sin(walk*7+e.x);
+ if(e.reward==='heli'){
+  soft(e.x,2.03+bounce,e.z,.74,.35,.49,C.heli);
+  sphere(e.x,2.15+bounce,e.z-.20,.43,.18,.30,C.glass);
+  box(e.x,2.28+bounce,e.z,1.30,.055,.12,C.gun);
+ }else if(e.reward==='turret'){
+  cyl(e.x,1.99+bounce,e.z,.65,.35,.65,C.blueDark);
+  soft(e.x,2.19+bounce,e.z-.24,.25,.22,.95,C.armorHi);
+ }else if(e.reward==='drone'){
+  soft(e.x,2.01+bounce,e.z,.55,.27,.48,C.blue);
+  box(e.x,2.18+bounce,e.z,1.15,.055,.13,C.cyan);
+ }else if(e.reward==='weapon'){
+  soft(e.x,2.09+bounce,e.z,.86,.18,.28,C.gun);
+  box(e.x+.30,1.90+bounce,e.z-.23,.21,.37,.35,C.blueLight);
+ }else{
+  sphere(e.x,2.03+bounce,e.z,.49,.49,.49,C.blueLight);
+  soft(e.x,2.04+bounce,e.z-.45,.43,.37,.12,C.armorHi);
+ }
 }
 
 function drawBoss(b){
@@ -1323,6 +1358,45 @@ function drawBoss(b){
  else if(b.bossType==='crusher'){ box(x,3.0,z,3.2,2.8,2.2,c1); box(x,4.7,z-.6,2.2,1.6,1.8,c2); for(const sgn of [-1,1]){box(x+sgn*2.0,2.8,z-.1,1.0,2.0,1.0,cd); sphere(x+sgn*2.0,1.4,z-.6,.82,.82,.82,c2); box(x+sgn*1.0,.9,z+.4,.76,1.55,.76,cd)} sphere(x-.55,4.95,z-1.42,.25,.25,.18,C.eye); sphere(x+.55,4.95,z-1.42,.25,.25,.18,C.eye); box(x,3.2,z-1.55,1.8,.25,.18,C.eye); }
  else if(b.bossType==='hydra'){ sphere(x,2.1,z,2.2,1.4,1.9,c1); box(x,1.1,z+.8,2.0,.65,1.2,cd); for(const sgn of [-1,0,1]){cyl(x+sgn*.95,4.2,z-.2,.38,1.8,.38,c2,sgn*.15); sphere(x+sgn*.95,5.35,z-.9,.72,.72,.72,c1); sphere(x+sgn*.95,5.45,z-1.42,.18,.18,.12,C.eye)} for(const sgn of [-1,1]){box(x+sgn*1.9,2.0,z,.48,1.4,.48,c2); box(x+sgn*.9,.8,z+.6,.55,1.2,.55,cd)} }
  else{ for(const sign of [-1,1]){box(x+sign*.76,1.07,z+.18,.77,1.82,.84,cd);box(x+sign*.78,.28,z-.06,.78,.35,1.02,cd);sphere(x+sign*1.42,2.78,z-.2,.62,.74,.69,c1);cyl(x+sign*1.46,1.97,z-.21,.55,1.28,.58,cd);sphere(x+sign*1.46,1.22,z-.39,.65,.58,.62,c1)} sphere(x,3.20,z,2.48,2.57,1.57,c1); sphere(x,3.52,z-.83,1.84,1.60,1.42,c2); sphere(x,4.52,z-.24,1.30,1.47,1.19,c2); for(const sign of [-1,1]){sphere(x+sign*.32,4.71,z-1.20,.27,.23,.16,C.eye); sphere(x+sign*.32,4.70,z-1.31,.12,.12,.075,C.white)} }
+ // Large silhouette details: riveted armor, powered core, cannons and danger striping.
+ const pulse=.90+.10*Math.sin(walk*9),lit=b.weakTime>0?C.warn:c2;
+ sphere(x,.08,z,3.75,.055,2.65,C.shadow);
+ if(b.bossType==='titan'){
+  soft(x,3.13,z-1.14,1.60,.92,.28,cd);
+  sphere(x,3.35,z-1.36,.54,.54,.22,lit);
+  for(const sign of [-1,1]){
+   soft(x+sign*1.46,2.04,z-.71,.65,1.72,1.06,cd);
+   cyl(x+sign*1.44,1.80,z-1.30,.35,.49,.35,C.gun);
+   box(x+sign*1.46,1.81,z-1.57,.44,.15,.15,C.warn);
+   soft(x+sign*.80,4.31,z-.29,.74,.36,.92,cd);
+  }
+ }else if(b.bossType==='beetle'){
+  for(const sign of [-1,1]){
+   soft(x+sign*.77,3.22,z-.38,.93,.37,1.80,cd,sign*.27);
+   sphere(x+sign*.79,3.27,z-1.29,.31,.22,.25,lit);
+   cyl(x+sign*1.39,1.61,z-1.00,.35,1.25,.35,C.gun);
+  }
+  soft(x,2.45,z-1.78,.70,.37,.47,C.gun);
+ }else if(b.bossType==='crusher'){
+  for(const sign of [-1,1]){
+   soft(x+sign*1.43,3.73,z-.65,.70,1.20,.99,cd);
+   box(x+sign*1.67,3.56,z-1.21,.14,.70,.15,C.warn);
+  }
+  soft(x,2.80,z-1.77,2.15,.28,.32,C.warn);
+  sphere(x,3.19,z-1.74,.46,.46,.22,lit);
+ }else{
+  for(const sign of [-1,1]){
+   soft(x+sign*2.00,2.21,z,1.17,.18,1.62,cd);
+   sphere(x+sign*2.27,2.18,z-.81,.28,.24,.30,lit);
+  }
+  soft(x,2.37,z-1.37,1.45,.45,.38,cd);
+  sphere(x,2.42,z-1.63,.47,.38,.20,lit);
+ }
+ for(const sign of [-1,1]){
+  sphere(x+sign*.66,1.15,z-1.0,.15,.15,.15,C.warn);
+  box(x+sign*.72,1.14,z-1.15,.13,.04,.16,C.gun);
+ }
+ if(b.weakTime>0)sphere(x,4.73,z-.83,.27*pulse,.27*pulse,.27*pulse,C.warn);
  if(phase>=2){for(const sign of [-1,1])cyl(x+sign*1.16,4.0,z-.13,.24,.83,.24,C.eye,sign*.5)} if(phase>=3)sphere(x,3.0,z-.9,.42,.42,.22,C.eye);
 }
 function drawSupport(){
