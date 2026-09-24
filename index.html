@@ -319,6 +319,12 @@ void main(){
  vec3 col=vColor.rgb*(sky+0.39*lit);
  col+=vec3(0.08,0.13,0.17)*lit*rim;
  col+=vColor.rgb*pow(max(dot(n,normalize(vec3(-0.15,0.78,0.62))),0.0),18.0)*0.13;
+ // Subtle procedural asphalt grain: no image downloads or extra texture fetches.
+ if(vWorld.y>0.11&&vWorld.y<0.21&&n.y>0.85){
+  vec2 tile=floor(vWorld.xz*7.0);
+  float grain=fract(sin(dot(tile,vec2(12.9898,78.233)))*43758.5453);
+  col*=mix(.966,1.022,grain);
+ }
  float fog=clamp((vDist-20.0)/55.0,0.0,0.69);
  col=mix(col,uFogColor,fog);
  col=pow(max(col,vec3(0.0)),vec3(.94));
