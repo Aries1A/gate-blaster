@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v10</title>
+<title>GATE BLASTER · WEBGL v10.1</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -78,7 +78,7 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900">⇧ STRAIGHT FIRE</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v10</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v10.1</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -276,7 +276,7 @@ function text(msg,x,y,z,color='#fff',life=.85){texts.push({msg,x,y,z,color,life,
 function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';noticeTime=dur}
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;entities=[];sparks=[];texts=[];bullets=[];waveEvents=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  spawn('mob',.25,{x:-1.15,hp:mobHp,n:12});
@@ -318,7 +318,7 @@ function reset(){
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
 function beginRun(){stage=1;runBuild=makeBuild();start()}
-function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v10 · REBALANCED</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>雑魚の人数とHPを再調整！ 触れた兵士だけが減り、最後の1人も接触すればアウト。ボスと3択強化に挑もう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
+function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v10.1 · RETRY FIX</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>雑魚の人数とHPを再調整！ 触れた兵士だけが減り、最後の1人も接触すればアウト。ボスと3択強化に挑もう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
  if(mode!=='playing')return;
