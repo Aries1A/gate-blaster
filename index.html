@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v21</title>
+<title>GATE BLASTER · WEBGL v22</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -593,7 +593,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v21</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v22</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -688,12 +688,8 @@ function damage(e,value,source='rifle',showHit=true){
  e.hp-=actual;e.hit=.12;
  if(e.kind==='crate')sfx('crateHit');else if(e.kind==='boss')sfx('bossHit');else sfx('hit');
  if(showHit&&source!=='counter'&&(e.kind==='mob'||e.kind==='boss')){
-  // Dense troop volleys display one total below; isolated enemies and boss
-  // display their own hit numbers, including ordinary (non-critical) damage.
-  if(crit||e.labelTime<=0||!e.labelTime){
-   text((crit?'✦':'')+Math.round(actual),e.x+rnd(-.26,.26),e.kind==='boss'?5.5:1.75,e.z,crit?'#ffe47b':'#f7fbff',crit?.64:.53);
-   e.labelTime=crit?.075:.10;
-  }
+  // Every enemy shows its own damage. Overlapping labels are intentional.
+  text((crit?'✦':'')+Math.round(actual),e.x+rnd(-.26,.26),e.kind==='boss'?5.5:1.75,e.z,crit?'#ffe47b':'#f7fbff',crit?.64:.53);
  }
  if(crit||source==='heli')burst(e.x,e.kind==='boss'?3.0:1.2,e.z,crit?C.spark:C.rocket,crit?8:13);
  if(e.hp<=0){
@@ -982,19 +978,9 @@ function update(dt){
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<3.45);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
     const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,4);
-    let totalDamage=0,anyCrit=false;
     for(const [i,e] of targets.entries()){
-     const result=damage(e,b.damage*(i===0?1:.85),'rifle',false);
-     totalDamage+=result.actual;anyCrit=anyCrit||result.crit;
+     damage(e,b.damage*(i===0?1:.85),'rifle');
      if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
-    }
-    // Aggregate the damage of this shot instead of printing four overlapping labels.
-    if(totalDamage>0){
-     const wave=streamGroups[hit.streamId];
-     if(!wave||wave.lastDamageLabel===undefined||t-wave.lastDamageLabel>=.075){
-      text((anyCrit?'✦':'')+Math.round(totalDamage),clamp(b.x,-3.2,3.2),1.9,hit.z,anyCrit?'#ffe47b':'#f7fbff',.56);
-      if(wave)wave.lastDamageLabel=t;
-     }
     }
    }else{
     damage(hit,b.damage,'rifle');
