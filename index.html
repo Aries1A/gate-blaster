@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v14</title>
+<title>GATE BLASTER · WEBGL v15</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -85,7 +85,7 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div id="bullets-hud" style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900;text-shadow:0 1px 5px #002">☀ SUNNY HARBOR</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v14</div><div class="hint">👥 人数 / ★ 強化<br>どちらかを選ぼう！</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v15</div><div class="hint">👥 通過中に1人ずつ増員<br>★ 箱を開けて回収</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -264,7 +264,7 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
-let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,choiceStates={},fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
@@ -325,13 +325,6 @@ function crateDurability(baseHp){
  const laneGuns=Math.max(1,Math.min(3,Math.floor(player.team/24)));
  const laneDps=(9+player.weapon*5+player.drone*3)*player.power*player.rate*laneGuns/.14;
  return Math.ceil(Math.max(baseHp*1.25,laneDps*(1.65+Math.min(stage,8)*.05)));
-}
-function chooseRoute(pair,route){
- if(!pair)return true;
- if(choiceStates[pair])return false;
- choiceStates[pair]=route;
- for(const e of entities)if(e.pair===pair&&((route==='gate'&&e.kind==='crate')||(route==='crate'&&e.kind==='gate')))e.used=true;
- return true;
 }
 function stageTheme(idx=stage){
  const themes=[
@@ -415,21 +408,21 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;choiceStates={};fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
  const mob=(when,x,hp,n,type)=>spawn('mob',when,{x,hp,n,mobType:type});
  mob(.25,-1.15,mobHp,12,chooseMobType(0)); mob(1.45,1.08,mobHp+10,14,chooseMobType(1));
- choice('route1',2.1,2.25,-2.20,14+stage*2,crateHp,'weapon');
+ choice('route1',2.1,2.25,-2.20,22+stage*2,crateHp,'weapon');
  mob(3.6,-1.85,mobHp+18,16,chooseMobType(2)); mob(4.5,1.55,mobHp+24,17,chooseMobType(3));
- choice('route2',6.5,-2.2,2.20,16+stage*2,crateHp+20,'drone');
+ choice('route2',6.5,-2.2,2.20,24+stage*2,crateHp+20,'drone');
  mob(8.4,0,mobHp+35,20,chooseMobType(4)); mob(9.8,-1.5,mobHp+34,18,chooseMobType(5)); mob(10.8,1.6,mobHp+45,18,chooseMobType(6));
- choice('route3',12.3,2.25,-2.20,18+stage*2,crateHp+22,'heli');
+ choice('route3',12.3,2.25,-2.20,28+stage*3,crateHp+22,'heli');
  mob(14.5,0,mobHp+58,22,chooseMobType(7)); mob(15.8,1.65,mobHp+48,20,chooseMobType(8)); mob(17.1,-1.65,mobHp+62,22,chooseMobType(9));
- choice('route4',19.0,-2.2,2.20,20+stage*3,crateHp+30,'turret');
+ choice('route4',19.0,-2.2,2.20,30+stage*3,crateHp+30,'turret');
  mob(21.0,-.75,mobHp+75,23,chooseMobType(10)); mob(22.1,1.3,mobHp+68,21,chooseMobType(11)); mob(23.8,0,mobHp+88,25,chooseMobType(12));
- choice('route5',25.0,2.25,-2.20,22+stage*3,crateHp+35,'weapon'); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
+ choice('route5',25.0,2.25,-2.20,32+stage*3,crateHp+35,'weapon'); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
  const sideLanes=[-2.4,0,2.4,-1.15,1.15];
  for(let i=0;i<6;i++)mob(6.1+i*3.55,sideLanes[(i*3+stage)%sideLanes.length],mobHp+15+i*5,15+(i%4)*3,chooseMobType(20+i));
  const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss),bossType:bp.id});
@@ -443,7 +436,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">TRUE 3D • WEBGL v14 · CROSSROADS</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br><b>人数ゲートか強化箱か、取れるのは片方だけ！</b> 箱は撃って開け、レーンに入って回収しよう。ボスは登場直後から砲撃してくる。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
+ show(`<div class="eyebrow">TRUE 3D • WEBGL v15 · SKILL ROUTES</div><h1>GATE <em>BLASTER</em></h1><p>明るいステージを駆け抜け、<b>+1ゲート</b> と <b>強化コンテナ</b> を奪い取ろう。<br><b>箱を取るか、ゲートで人数を増やすか、腕次第で両方も！</b> 箱は撃って開け、レーンに入って回収。ゲートは通過中に1人ずつ増える。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">WebGL2 / スワイプ移動 / 射撃オート / オリジナルBGM<br>ステージごとに景色・敵・ボスが変化 / 最高到達ステージ ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -484,8 +477,8 @@ function doSpawn(e){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
- }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,length:8.5,used:!!choiceStates[e.pair]});
- else if(e.kind==='crate'){const hp=crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,hit:0,open:false,used:!!choiceStates[e.pair]});}
+ }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,progress:0,length:8.5,used:false});
+ else if(e.kind==='crate'){const hp=crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,hit:0,open:false,used:false});}
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
   boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
@@ -646,17 +639,18 @@ function update(dt){
  for(const e of entities){
   if(e.used)continue;e.z+=e.speed*dt;if(e.hit>0)e.hit-=dt;
   if(e.kind==='gate'){
-   if(e.pair&&choiceStates[e.pair]&&choiceStates[e.pair]!=='gate'){e.used=true;continue}
-   if(Math.abs(e.x-player.x)<1.24&&Math.abs(e.z-player.z)<e.length/2+.32){
-    if(chooseRoute(e.pair,'gate')){
-     player.team+=e.gain;e.taken=e.gain;
-     text('👥 +'+e.gain,player.x,1.9,player.z,'#93fff3',1.2);
-     announce('👥 TEAM ROUTE +'+e.gain,1.1);cue(790,.2,'triangle',.045);
-     burst(e.x,1.1,player.z,C.cyan,22);
+   // Every moment spent inside the gate yields one soldier at a time.
+   // Moving to the opposite crate is allowed; neither pickup cancels the other.
+   if(Math.abs(e.x-player.x)<1.38&&Math.abs(e.z-player.z)<e.length/2+.4){
+    e.progress+=dt*7;
+    const gain=Math.min(e.gain-e.taken,Math.floor(e.progress));
+    if(gain>0){
+     e.progress-=gain;e.taken+=gain;player.team+=gain;
+     text('+'+gain,player.x,1.4,player.z-1.3,'#93fff3',.55);
+     cue(780,.045,'triangle',.012);
     }
-    e.used=true;
-   }
-   if(e.z-e.length*.5>player.z+2)e.used=true;
+   }else e.progress=0;
+   if(e.z-e.length*.5>player.z+2||e.taken>=e.gain)e.used=true;
   }else if(e.kind==='mob'){
    if(!e.touched&&e.z>=player.z-.16){
     e.touched=true;const friends=formation(),foes=enemyPositions(e);let losses=0;
@@ -667,7 +661,7 @@ function update(dt){
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate'){
    if(e.open&&Math.abs(e.x-player.x)<1.07&&Math.abs(e.z-player.z)<.84){
-    if(chooseRoute(e.pair,'crate'))reward(e);
+    reward(e);
     e.used=true;
    }
    if(e.z>player.z+1.35)e.used=true;
