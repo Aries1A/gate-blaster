@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v9</title>
+<title>GATE BLASTER · WEBGL v10</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -78,7 +78,7 @@ p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
   <div id="support-hud">🚁 0　🔧 0</div>
   <div id="notice"></div>
   <div style="position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 93px);font-size:10px;color:#ccfaff;font-weight:900">⇧ STRAIGHT FIRE</div>
-  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v9</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
+  <div id="bottom"><div class="signature">GATE BLASTER • WEBGL v10</div><div class="hint">← 左右にスワイプ →<br>射撃はオート</div></div>
  </div>
  <div id="impact-flash"></div>
  <div id="boss-intro"><span>⚠ DANGER · FINAL ENCOUNTER</span><b>MEGA TITAN</b><span>PHASE 1 / 3</span></div>
@@ -261,7 +261,7 @@ function formation(team=player.team){const n=Math.min(96,Math.max(1,Math.floor(t
 function enemyPositions(e){const n=Math.max(1,Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1))),cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols),out=[];
  for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols;out.push({x:e.x+(c-(cols-1)/2)*.39,z:e.z+(r-(rows-1)/2)*.42});}return out;}
 // Each surviving enemy soldier has its own share of the crowd's hit points.
-function crowdHealth(baseHp,n){return Math.ceil(Math.max(baseHp*1.8,n*(12+stage*2.5)))}
+function crowdHealth(baseHp,n){return Math.ceil(Math.max(baseHp*1.2,n*(7+stage*1.5)))}
 function musicTone(freq,dur,vol,type='triangle'){if(!audioContext||!soundOn)return;const now=audioContext.currentTime,o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);if(type==='sine')o.frequency.exponentialRampToValueAtTime(Math.max(38,freq*.57),now+dur);a.gain.setValueAtTime(.0001,now);a.gain.linearRampToValueAtTime(vol,now+.009);a.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(a);a.connect(audioContext.destination);o.start(now);o.stop(now+dur+.025);}
 function music(dt){if(!soundOn||mode!=='playing')return;if(!audioContext){try{audioContext=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}}if(audioContext.state!=='running')return;
  musicClock-=dt;let guard=0;while(musicClock<=0&&guard++<3){musicClock+=.115;const step=musicStep++%32,beat=step%16,bossOn=!!(boss&&!boss.used);const roots=bossOn?[55,55,58.27,49]:[65.41,58.27,61.74,55],root=roots[Math.floor(step/8)];
@@ -278,7 +278,7 @@ function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 function reset(){
  t=0;entities=[];sparks=[];texts=[];bullets=[];boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor};squadBuffer=player.team;
- const mobHp=45+stage*24,crateHp=32+stage*9;
+ const mobHp=32+stage*14,crateHp=32+stage*9;
  spawn('mob',.25,{x:-1.15,hp:mobHp,n:12});
  spawn('mob',1.45,{x:1.08,hp:mobHp+10,n:14});
  spawn('gate',2.1,{x:2.25,gain:22+stage*2});
@@ -305,20 +305,20 @@ function reset(){
  spawn('crate',25.0,{x:-2.20,hp:crateHp+32,reward:'team'});
  spawn('crate',26.45,{x:2.20,hp:crateHp+35,reward:'heli'});
  spawn('mob',25.8,{x:1.7,hp:mobHp+73,n:22});
- // Additional staggered waves, including lanes missed by the original encounters.
- const sideLanes=[-2.55,0,2.55,-1.2,1.25];
- for(let i=0;i<18;i++){
-  spawn('mob',.95+i*1.46,{x:sideLanes[(i*3+stage)%sideLanes.length],
-   hp:mobHp+17+i*5+stage*3,n:15+(i%5)*3});
+ // Additional waves without flooding the first-stage opening.
+ const sideLanes=[-2.4,0,2.4,-1.15,1.15];
+ for(let i=0;i<6;i++){
+  spawn('mob',6.1+i*3.55,{x:sideLanes[(i*3+stage)%sideLanes.length],
+   hp:mobHp+15+i*5,n:15+(i%4)*3});
  }
- spawn('boss',29.0,{hp:9000+stage*2600});
+ spawn('boss',29.0,{hp:3200+stage*1500});
  waveEvents.sort((a,b)=>a.when-b.when);
  $('stage-val').textContent=String(stage).padStart(2,'0');
  announce('STAGE '+stage,1.4);
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
 function beginRun(){stage=1;runBuild=makeBuild();start()}
-function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v9 · DANGER ZONE</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>雑魚のHPは兵士数に比例。最後の1人でも敵に触れるとアウト！ 超高HPボスと3択強化に挑もう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
+function menu(){mode='menu';show(`<div class="eyebrow">TRUE 3D • WEBGL v10 · REBALANCED</div><h1>GATE <em>BLASTER</em></h1><p>青い部隊を指で左右に動かし、<b>+1ゲート</b> と <b>武器コンテナ</b> を取ろう。<br>直進弾で赤い敵を撃退。人数を増やすと火力も当たり判定も増える！<br>雑魚の人数とHPを再調整！ 触れた兵士だけが減り、最後の1人も接触すればアウト。ボスと3択強化に挑もう。</p><button class="cta" id="start">▶ ゲームスタート</button><div class="mini">3DグラフィックスはWebGL2描画 / スワイプで移動 / 射撃は自動<br>♫ オリジナルBGM（音楽ボタンで切替） / 最高到達ステージ ${best}</div>`);$('start').onclick=beginRun}
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
 function win(){
  if(mode!=='playing')return;
@@ -356,15 +356,15 @@ function win(){
 function lose(){if(mode!=='playing')return;mode='lost';show(`<div class="eyebrow">MISSION FAILED</div><h1>GAME <em>OVER</em></h1><p>敵との接触で部隊が減り、<br>ボスのパンチを何度も受けると敗北。</p><button class="cta" id="retry">↻ リトライ</button><div class="mini">ステージ ${stage} / 最高到達 ${best}</div>`);$('retry').onclick=beginRun}
 function doSpawn(e){
  if(e.kind==='mob'){
-  // Scale total health with the actual number of enemies, not just the wave label.
-  const n=Math.ceil(e.n*7),hp=crowdHealth(e.hp,n);
+  // Each crowd is 2x v7 size, and health scales proportionally without overloading stage 1.
+  const n=Math.ceil(e.n*2),hp=crowdHealth(e.hp,n);
   entities.push({kind:'mob',x:e.x,z:-29,y:0,hp,maxHp:hp,
    n,speed:rnd(6.6,8.1),hit:0,seed:rnd(0,100),used:false});
  }
  else if(e.kind==='gate')entities.push({kind:'gate',x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,length:8.5,used:false});
  else if(e.kind==='crate')entities.push({kind:'crate',x:e.x,z:-31,y:0,speed:6.9,hp:e.hp,maxHp:e.hp,reward:e.reward,hit:0,used:false});
  else if(e.kind==='boss'){
-  boss={kind:'boss',x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:3.7,summon:2.2,sway:0,used:false};
+  boss={kind:'boss',x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:3.7,summon:4.2,sway:0,used:false};
   introTime=2.5;bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);announce('⚠ TITAN INCOMING',2.3);
  }
 }
@@ -476,10 +476,10 @@ function update(dt){
   // Reinforcements spawn from the moment the boss appears, not only in melee.
   boss.summon-=dt;
   if(boss.summon<=0){
-   boss.summon=Math.max(2.05,3.2-boss.phase*.28-stage*.045);
-   for(const x of [-2.6,0,2.6]){
-    const n=56+boss.phase*14+Math.min(14,stage*2);
-    const hp=crowdHealth(105+stage*42+boss.phase*33,n);
+   boss.summon=Math.max(4.7,5.9-boss.phase*.38-stage*.055);
+   for(const x of [-2.4,2.4]){
+    const n=23+boss.phase*5+Math.min(9,stage*2);
+    const hp=crowdHealth(50+stage*20+boss.phase*13,n);
     entities.push({kind:'mob',x,z:-24,y:0,hp,maxHp:hp,
       n,speed:7.5+boss.phase*.18,
       hit:0,seed:rnd(0,100),used:false});
