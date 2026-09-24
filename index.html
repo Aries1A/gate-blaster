@@ -377,7 +377,7 @@ function closeSoundSettings(){
  $('settings-overlay').classList.add('off');saveSoundSettings();
 }
 
-let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
+let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,lastStreamHit=-100,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
@@ -549,7 +549,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
@@ -637,7 +637,7 @@ function doSpawn(e){
   const total=Math.min(55,Math.max(30,Math.ceil(e.n*a.n*1.38)));
   const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
   const id=++streamSerial;
-  streamGroups[id]={total,defeated:0,credited:false};
+  streamGroups[id]={total,defeated:0,credited:false,contactLosses:0};
   const columns=Math.min(12,Math.max(9,Math.ceil(Math.sqrt(total*3))));
   streams.push({id,x:e.x,type,total,columns,hp:Math.max(6,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
@@ -682,7 +682,7 @@ function damage(e,value,source='rifle'){
    if(wave&&!wave.credited){
     wave.defeated++;
     if(wave.defeated>=Math.ceil(wave.total*.75)){
-     credit=true;wave.credited=true;delete streamGroups[e.streamId];
+     credit=true;wave.credited=true;
     }
    }
    if(credit){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
@@ -819,7 +819,7 @@ function update(dt){
    for(let c=0;c<count;c++){
     const i=line.emitted++;
     const x=clamp(center+(c-(count-1)/2)*.55+(row%2?.12:0),-3.2,3.2);
-    entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(c%2)*.07,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%5===0,hit:0,seed:rnd(0,100),used:false});
+    entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(c%2)*.07,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%line.total===0,hit:0,seed:rnd(0,100),used:false});
    }
    line.clock+=line.interval;
   }
@@ -843,10 +843,31 @@ function update(dt){
    if(e.z-e.length*.5>player.z+2||e.taken>=e.gain)e.used=true;
   }else if(e.kind==='mob'){
    if(!e.touched&&e.z>=player.z-.16){
-    e.touched=true;const friends=formation(),foes=enemyPositions(e);let losses=0;
-    for(const f of friends){if(foes.some(enemy=>Math.abs(f.x-enemy.x)<.34&&Math.abs(f.z-enemy.z)<.43)){losses++;if(losses<=10)burst(f.x,.72,f.z,C.redLight,3)}}
-    const lost=Math.min(Math.floor(player.team),losses);
-    if(lost>0){player.team=Math.max(0,player.team-lost);player.hp=Math.max(0,player.hp-Math.max(2,Math.ceil(lost*.55)));text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035);if(player.team<1||player.hp<=0)lose()}
+    e.touched=true;
+    if(e.streamId){
+     // A wide visual row consists of many separate actors. Treat contact as one
+     // strike, not a loss for every overlapping soldier in the same row.
+     const wave=streamGroups[e.streamId];
+     if(wave&&wave.contactLosses<3&&t-lastStreamHit>=.24&&player.team>=1){
+      const touching=formation().find(f=>Math.abs(f.x-e.x)<.34&&Math.abs(f.z-e.z)<.43);
+      if(touching){
+       const lost=1;
+       wave.contactLosses+=lost;lastStreamHit=t;
+       player.team=Math.max(0,player.team-lost);
+       player.hp=Math.max(0,player.hp-1);
+       burst(touching.x,.72,touching.z,C.redLight,4);
+       text('-1',touching.x,1.65,touching.z,'#ff9aa8',.6);
+       flash('hurt');cue(155,.09,'sawtooth',.024);
+       if(player.team<1||player.hp<=0)lose();
+      }
+     }
+    }else{
+     // The boss's grouped reinforcements retain their existing collision rules.
+     const friends=formation(),foes=enemyPositions(e);let losses=0;
+     for(const f of friends){if(foes.some(enemy=>Math.abs(f.x-enemy.x)<.34&&Math.abs(f.z-enemy.z)<.43)){losses++;if(losses<=10)burst(f.x,.72,f.z,C.redLight,3)}}
+     const lost=Math.min(Math.floor(player.team),losses);
+     if(lost>0){player.team=Math.max(0,player.team-lost);player.hp=Math.max(0,player.hp-Math.max(2,Math.ceil(lost*.55)));text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035);if(player.team<1||player.hp<=0)lose()}
+    }
     e.used=true;
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate'){
