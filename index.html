@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v18</title>
+<title>GATE BLASTER · WEBGL v19</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -593,7 +593,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v18</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v19</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -648,7 +648,7 @@ function doSpawn(e){
  else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
-  boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
+  boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,used:false};
   introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${boss.name}</b>`;
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);
  }
@@ -663,10 +663,28 @@ function reward(e){
  sfx('pickup');flash();burst(e.x,1.1,e.z,C.gold,26);
  for(let i=0;i<6;i++)text(['✦','+','★'][i%3],e.x+rnd(-1.2,1.2),rnd(1.4,3),e.z+rnd(-.8,.8),'#ffdd7a',.75);
 }
+function bossShotFloor(b){
+ // A minimum boss DPS only for an underpowered party. More bullets or faster
+ // fire divide the floor so a strong build never gets a free multiplier.
+ const salvo=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
+ const cadence=Math.max(.05,.14/player.rate);
+ return b.maxHp*.0032 * (cadence/.14) / salvo;
+}
+function bossCounter(){
+ if(!boss||boss.used||mode!=='playing'||t-boss.lastCounter<2.1)return;
+ boss.lastCounter=t;
+ const strike=boss.maxHp*.03;
+ burst(boss.x,3.2,boss.z,C.spark,22);text('⚡ -'+Math.ceil(strike),boss.x,5.65,boss.z,'#ffef8c',1.1);
+ cue(1100,.16,'triangle',.050);
+ damage(boss,strike,'counter');
+ if(boss&&!boss.used)boss.weakTime=2.1;
+}
 function damage(e,value,source='rifle'){
  if(!e || e.used || mode!=='playing')return;
  const crit=source!=='rifle' ? false : Math.random()<.09;
- const actual=(crit?value*1.65:value)*((player&&player.overdrive>0)?1.8:1);
+ const base=e.kind==='boss'&&source==='rifle'?Math.max(value,bossShotFloor(e)):value;
+ const exposed=e.kind==='boss'&&e.weakTime>0&&source!=='counter'?1.35:1;
+ const actual=(crit?base*1.65:base)*exposed*((player&&player.overdrive>0)?1.8:1);
  e.hp-=actual;e.hit=.12;
  if(e.kind==='crate')sfx('crateHit');else if(e.kind==='boss')sfx('bossHit');else sfx('hit');
  if(crit){
@@ -795,7 +813,7 @@ function updateBossSiege(dt){
   if(player.hp<=0||player.team<1)lose();
  }else{
   text('✓',player.x,2.0,player.z,'#8dfff0',.9);
-  burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);
+  burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);bossCounter();
  }
 }
 function update(dt){
@@ -891,6 +909,7 @@ function update(dt){
  }
  entities=entities.filter(e=>!e.used);
  if(boss&&!boss.used){
+  boss.weakTime=Math.max(0,(boss.weakTime||0)-dt);
   boss.z=Math.min(player.z-2.05,boss.z+dt*(boss.entered?2.15:4.2));
   if(!boss.entered&&boss.z>=-10.5){boss.entered=true;announce('⚠ BOSS',1.1)}
   const bias=boss.bossType==='beetle'?Math.sin(walk*2.2)*1.5:boss.bossType==='hydra'?Math.sin(walk*1.1)*1.0:0;
@@ -917,16 +936,17 @@ function update(dt){
   }
  }
  if(mode==='playing')updateBossSiege(dt);
- if(warning){warning.time-=dt;if(warning.time<=0){
+ if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
   if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
    bossHits++;const bossMult=warning.pattern==='crusher'?1.26:warning.pattern==='beetle'?.86:1;const loss=Math.min(Math.floor(player.team),Math.max(6,Math.ceil(player.team*(.36+boss.phase*.05)*(1-player.armor)*bossMult)));
    player.team=Math.max(0,player.team-loss);player.hp-=(18+boss.phase*3+stage*.45)*bossMult;
    text('-'+loss,player.x,2.1,player.z,'#ff879b',1.2);
    burst(player.x,1.1,player.z,C.redLight,38);flash('hurt');cue(105,.34,'sawtooth',.055);
    if(player.hp<=0||player.team<1){lose();}
-  }else{text('✓',player.x,2.0,player.z,'#8dfff0');cue(840,.11)}
+  }else{text('✓',player.x,2.0,player.z,'#8dfff0');cue(840,.11);bossCounter()}
   warning=null;
  }}
+ if(mode!=='playing')return;
  shotClock-=dt;
  if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);sfx('shot');
   const count=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
@@ -1102,7 +1122,7 @@ function updateHUD(){
  const pips=$('field-xp-pips').children;
  for(let i=0;i<pips.length;i++)pips[i].classList.toggle('on',i<fieldPicks);
  impactFlash.style.opacity=flashTime>0?'1':'0';
- if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':['I','II','III'][boss.phase-1];$('boss-name').textContent=boss.name}
+ if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':boss.weakTime>0?'⚡':['I','II','III'][boss.phase-1];$('boss-name').textContent=boss.name}
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
 function pointerX(e){const r=glCanvas.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width*2-1,-1,1)}
