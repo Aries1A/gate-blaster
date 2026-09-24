@@ -407,7 +407,7 @@ function stageModifier(idx=stage){
 function stagePath(done=0,active=Math.min(5,done+1)){
  const items=[];
  for(let i=1;i<=5;i++){
-  if(i>1)items.push('<span class="path-link'+(i<=done?' done':'')+'"></span>');
+  if(i>1)items.push('<span class="path-link'+(i<=done+1&&done>0?' done':'')+'"></span>');
   const icon=i===3?'🔥':i===5?'👑':String(i);
   items.push('<span class="path-node'+(i===3||i===5?' special':'')+(i<=done?' done':i===active?' now':'')+'" aria-label="ステージ '+i+(i<=done?' クリア':i===active?' 挑戦中':'')+'">'+icon+'</span>');
  }
