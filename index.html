@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v25</title>
+<title>GATE BLASTER · WEBGL v26</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -735,8 +735,13 @@ function reset(){
   for(let i=0;i<8;i++){
    spawn('crate',2.9+i*2.85,{x:lanes[i],hp:Math.ceil(crateHp*.83)+i*3,reward:prizes[i],feverBonus:true});
   }
-  for(let i=0;i<9;i++){
-   mob(3.05+i*2.55,[-1.65,1.55,0,1.8,-1.75][i%5],mobHp+18+i*5,11+(i%4)*2,chooseMobType(32+i));
+  // More densely staggered rows, including a late surge. Loot still rewards
+  // clearing the lane; FEVER troops are individually fragile, not HP sponges.
+  for(let i=0;i<20;i++){
+   spawn('stream',3.0+i*1.16,{
+    x:[-1.65,1.55,0,1.8,-1.75][i%5],hp:mobHp+10+i*3,
+    n:15+(i%4)*3,mobType:chooseMobType(32+i),feverBonus:true
+   });
   }
  }
  const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss),bossType:bp.id,rushPart:0});
@@ -756,7 +761,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v25 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v26 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -870,17 +875,17 @@ function doSpawn(e){
   // Dense troop bands: rows span the road; every soldier remains individually hittable.
   // Preserve original wave HP and one kill-energy credit per wave.
   const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
-  const total=Math.min(55,Math.max(30,Math.ceil(e.n*a.n*1.38)));
+  const total=Math.min(e.feverBonus?78:55,Math.max(e.feverBonus?46:30,Math.ceil(e.n*a.n*(e.feverBonus?1.72:1.38))));
   const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
   const id=++streamSerial;
   streamGroups[id]={total,defeated:0,credited:false,contactLosses:0};
   const columns=Math.min(12,Math.max(9,Math.ceil(Math.sqrt(total*3))));
-  streams.push({id,x:e.x,type,total,columns,hp:Math.max(6,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:type==='runner'?.083:.105,clock:0,emitted:0});
+  streams.push({id,x:e.x,type,total,columns,hp:Math.max(6,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:e.feverBonus?.077:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
- }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,progress:0,length:8.5,used:false});
+ }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,nextPanel:0,length:8.5,used:false});
  else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
  else if(e.kind==='boss'){
   const bp=bossByType(e.bossType);
@@ -1098,19 +1103,18 @@ function update(dt){
  for(const e of entities){
   if(e.used)continue;e.z+=e.speed*dt;if(e.hit>0)e.hit-=dt;
   if(e.kind==='gate'){
-   // Every moment spent inside the gate yields one soldier at a time.
-   // Moving to the opposite crate is allowed; neither pickup cancels the other.
-   if(Math.abs(e.x-player.x)<1.38&&Math.abs(e.z-player.z)<e.length/2+.4){
-    e.progress+=dt*7;
-    const gain=Math.min(e.gain-e.taken,Math.floor(e.progress));
-    if(gain>0){
-     e.progress-=gain;e.taken+=gain;player.team+=gain;
-     text('+'+gain,player.x,1.4,player.z-1.3,'#93fff3',.55);
-     if(e.taken%5<gain)pulse(player.x,1.10,player.z-1.3,'#81ffe9',.23);
-     cue(780,.045,'triangle',.012);
+   // Process the actual panes crossed this frame, one by one. A panel cannot
+   // be collected later by switching lanes after it already went past.
+   while(e.nextPanel<e.gain&&gatePanelZ(e,e.nextPanel)>=player.z){
+    if(Math.abs(e.x-player.x)<1.38){
+     e.taken++;player.team++;
+     text('+1',player.x+rnd(-.16,.16),1.55,player.z-1.35,'#93fff3',.46);
+     if(e.taken%5===0)pulse(player.x,1.10,player.z-1.3,'#81ffe9',.23);
+     cue(780,.035,'triangle',.010);
     }
-   }else e.progress=0;
-   if(e.z-e.length*.5>player.z+2||e.taken>=e.gain)e.used=true;
+    e.nextPanel++;
+   }
+   if(e.nextPanel>=e.gain||gatePanelZ(e,e.gain-1)>player.z+2.2)e.used=true;
   }else if(e.kind==='mob'){
    if(!e.touched&&e.z>=player.z-.16){
     e.touched=true;
@@ -1118,7 +1122,7 @@ function update(dt){
      // A wide visual row consists of many separate actors. Treat contact as one
      // strike, not a loss for every overlapping soldier in the same row.
      const wave=streamGroups[e.streamId];
-     if(wave&&wave.contactLosses<3&&t-lastStreamHit>=.24&&player.team>=1){
+     if(wave&&wave.contactLosses<(fever?2:3)&&t-lastStreamHit>=.24&&player.team>=1){
       const touching=formation().find(f=>Math.abs(f.x-e.x)<.34&&Math.abs(f.z-e.z)<.43);
       if(touching){
        const lost=1;
@@ -1390,35 +1394,27 @@ function drawMob(e){
  for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-8){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
-function drawGate(e){
- const front=e.z-e.length/2,live=e.taken<e.gain;
- const panel=live?C.blue:C.blueDark,trim=live?C.cyan:C.seam;
- // A readable portal/conveyor: thick rounded side rails, lit lanes and a gate arch.
- soft(e.x,.22,e.z,2.50,.22,e.length,panel);
- for(const sign of [-1,1]){
-  soft(e.x+sign*1.27,.40,e.z,.18,.40,e.length,trim);
-  for(let i=0;i<5;i++){
-   const z=e.z-e.length*.40+i*(e.length*.20);
-   box(e.x+sign*1.16,.66,z,.10,.07,.43,C.armorHi);
-  }
-  soft(e.x+sign*1.29,1.35,front,.25,2.55,.33,C.armorHi);
-  soft(e.x+sign*1.30,1.55,front-.20,.10,1.92,.18,trim);
-  sphere(e.x+sign*1.3,2.67,front,.28,.28,.28,C.warn);
- }
- soft(e.x,2.69,front,2.82,.35,.49,C.blueDark);
- soft(e.x,2.71,front-.28,2.45,.18,.23,trim);
- // Embossed people silhouettes repeat along the active gate.
- if(live){
-  for(const dx of [-.43,0,.43]){
-   sphere(e.x+dx,2.77,front-.41,.14,.14,.14,C.armorHi);
-   soft(e.x+dx,2.56,front-.42,.17,.24,.10,C.armorHi);
-  }
- }
- for(let i=0;i<8;i++){
-  const z=e.z+(i-3.5)*(e.length/8),active=live&&Math.sin(walk*7+i*.7)>-.35;
-  box(e.x,.339,z,1.82,.014,.065,active?C.armorHi:C.blueDark);
- }
+function gatePanelZ(e,index){
+ return e.z+(index-(e.gain-1)/2)*(e.length/e.gain);
 }
+function drawGate(e){
+ // Every visible pane corresponds to exactly ONE possible soldier.
+ // Glass is blended in the dedicated final WebGL pass.
+ const step=e.length/e.gain;
+ for(let i=e.nextPanel;i<e.gain;i++){
+  const z=gatePanelZ(e,i);
+  if(z>player.z+3||z<-36)continue;
+  const live=e.taken<e.gain;
+  glass(e.x,1.30,z,2.35,2.15,.055,live?[.30,.92,1,.30]:[.33,.47,.55,.17]);
+  // Thin edge lines reinforce the repetition even when panels overlap.
+  for(const sign of [-1,1])box(e.x+sign*1.19,1.29,z,.052,2.12,.068,C.cyan);
+  box(e.x,2.41,z,2.45,.065,.08,C.armorHi);
+ }
+ // Short base rail makes the lane readable without hiding crates.
+ soft(e.x,.16,e.z,2.44,.17,e.length,C.blueDark);
+ for(const sign of [-1,1])soft(e.x+sign*1.23,.22,e.z,.11,.23,e.length,C.blueLight);
+}
+
 function drawCrate(e){
  // A beveled loot case, with a large readable top emblem and side locks.
  sphere(e.x,.055,e.z,1.75,.04,1.34,C.shadow);
@@ -1588,7 +1584,20 @@ function render(){
   fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.stroke();fx.restore();
  }
 
- for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
+ for(const e of entities){ if(e.kind==='gate'){
+  // Label near panes individually; stagger distant panes to avoid 40 labels
+  // occupying the same few pixels on a small portrait screen.
+  let shown=0;
+  for(let i=e.nextPanel;i<e.gain&&shown<15;i++){
+   const z=gatePanelZ(e,i);
+   if(z<-28||z>player.z+1||i%2&&z<player.z-4)continue;
+   const p=project(e.x,1.46,z);
+   if(p&&p.y>-20&&p.y<screenH+20){
+    tag('+1',p.x,p.y,'#eaffff','#167a97',p.scale*.61);
+    shown++;
+   }
+  }
+} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
  for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
  for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('✦')?23:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
