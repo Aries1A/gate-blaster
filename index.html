@@ -1375,12 +1375,12 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1,hit=false){
 function drawMob(e){
  if(e.streamId){
   const col=mobArchetype(e.mobType);
-  if(e.z<-12){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
+  if(e.z<-8){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
   else soldier(e.x,e.z,false,e.seed,.33,e.mobType,1,e.hit>0);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-12){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
+ for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<-8){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function drawGate(e){
@@ -1505,17 +1505,26 @@ function drawSupport(){
   const y=4.0+Math.sin(walk*4+i)*.15,spin=walk*38+i;
   // genuine 3D helicopter: cabin, windshield, skids, tail and rotating rotor
   sphere(x,y,z,1.05,.45,.66,C.heli);sphere(x,y+.04,z-.24,.62,.26,.35,C.heliDark);
+  soft(x,y-.06,z-.57,.56,.32,.34,C.glass);
+  soft(x,y-.04,z+.11,.81,.17,.63,C.armorHi);
   box(x,y+.06,z+.65,.19,.17,1.30,C.heliDark);box(x,y+.11,z+1.25,.68,.095,.13,C.heli);
   box(x,y+.37,z,.09,.26,.09,C.gun);
   box(x,y+.53,z,2.50,.035,.095,C.gun,spin);box(x,y+.53,z,.095,.035,2.5,C.heli,spin);
   for(const dx of [-.32,.32]){box(x+dx,y-.36,z,.055,.08,1.15,C.gun);box(x+dx,y-.27,z-.4,.055,.25,.055,C.heliDark);box(x+dx,y-.27,z+.4,.055,.25,.055,C.heliDark)}
+  for(const sign of [-1,1]){
+   soft(x+sign*.70,y-.22,z-.12,.28,.18,.69,C.gun);
+   cyl(x+sign*.70,y-.25,z-.39,.19,.19,.49,C.rocket);
+  }
   cyl(x,y-.25,z-.27,.18,.19,.18,C.rocket);
+  sphere(x,y+.19,z+1.14,.13,.13,.13,C.warn);
  }
  for(let i=0;i<player.turret;i++){
   const side=i%2?1:-1, x=clamp(player.x+side*.95,-3.42,3.42),z=player.z+1.10;
-  cyl(x,.42,z,.72,.48,.72,C.blueDark);cyl(x,.82,z,.50,.39,.50,C.heli);
+  sphere(x,.04,z,.83,.04,.78,C.shadow);
+  soft(x,.37,z,.83,.47,.80,C.blueDark);cyl(x,.82,z,.50,.39,.50,C.heli);
   box(x,1.02,z-.42,.15,.16,.94,C.gun);box(x,1.02,z-.94,.22,.20,.20,C.gold);
   sphere(x,1.06,z,.18,.15,.19,C.cyan);
+  box(x,1.17,z+.10,.53,.08,.40,C.armorHi);
  }
 }
 
@@ -1523,7 +1532,18 @@ function squad(){
  const friends=formation(),lvl=commanderLevel();
  for(let i=0;i<friends.length;i++)soldier(friends[i].x,friends[i].z,true,i*.8,.33,'ally',lvl);
  soldier(player.x,player.z+.42,true,99,.40,'commander',lvl);
- for(let i=0;i<player.drone;i++){const a=walk*2+i*TAU/player.drone,x=player.x+Math.cos(a)*1.45,z=player.z+Math.sin(a)*.75; box(x,2.48,z,.49,.18,.54,C.blueLight); box(x,2.60,z,.88,.042,.10,C.gun); box(x,2.60,z,.10,.042,.88,C.allyGold)}
+ for(let i=0;i<player.drone;i++){
+  const a=walk*2+i*TAU/player.drone,x=player.x+Math.cos(a)*1.45,z=player.z+Math.sin(a)*.75;
+  const y=2.56+Math.sin(walk*5+i)*.07;
+  soft(x,y,z,.53,.21,.56,C.blueLight);
+  soft(x,y+.10,z-.11,.31,.13,.28,C.armorHi);
+  box(x,y-.03,z-.33,.21,.10,.24,C.gun);
+  sphere(x,y-.03,z-.43,.12,.11,.11,C.allyGold);
+  for(const dx of [-.43,.43]){
+   box(x+dx,y,z,.47,.06,.12,C.gun);
+   sphere(x+dx,y+.08,z,.17,.045,.17,C.cyan);
+  }
+ }
 }
 
 function render(){
