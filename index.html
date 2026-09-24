@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v19</title>
+<title>GATE BLASTER · WEBGL v20</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -593,7 +593,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v19</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v20</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -960,11 +960,32 @@ function update(dt){
   const oldZ=b.z;b.z+=b.vz*dt;b.life-=dt;if(b.life<=0)continue;
   let hit=null,near=1e6;
   for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind))continue;
-   const dx=Math.abs(b.x-e.x),radius=e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
-   if(dx>radius)continue; const dz=e.z-oldZ; if(dz>1.15||e.z<b.z-1.15)continue; if(dz<near){near=dz;hit=e}
+   // A dense troop row is one broad target. Crates and boss retain their
+   // original precise hitboxes, so choosing an equipment lane still matters.
+   const dx=Math.abs(b.x-e.x),radius=e.streamId?3.45:e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
+   if(dx>radius)continue;
+   const dz=e.z-oldZ;if(dz>1.15||e.z<b.z-1.15)continue;
+   const score=dz+(e.streamId?dx*.32:0);
+   if(score<near){near=score;hit=e}
   }
   if(boss&&!boss.used&&Math.abs(b.x-boss.x)<1.7&&boss.z<=oldZ+1.0&&boss.z>=b.z-1.0){if(boss.z-oldZ<near)hit=boss}
-  if(hit){damage(hit,b.damage,'rifle');b.life=0;burst(b.x,hit.kind==='boss'?3.5:1.4,hit.z,b.color==='gold'?C.spark:C.cyan,4)}
+  if(hit){
+   if(hit.streamId){
+    // One visible shot sweeps across up to four neighbors in the same front
+    // row, rather than requiring a separate bullet for every narrow hitbox.
+    const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<3.45);
+    neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
+    const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,4);
+    for(const [i,e] of targets.entries()){
+     damage(e,b.damage*(i===0?1:.85),'rifle');
+     if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
+    }
+   }else{
+    damage(hit,b.damage,'rifle');
+    burst(b.x,hit.kind==='boss'?3.5:1.4,hit.z,b.color==='gold'?C.spark:C.cyan,4);
+   }
+   b.life=0;
+  }
  }
  bullets=bullets.filter(b=>b.life>0&&b.z>-69).slice(-160); supportFire(dt);if(mode==='playing')updateEnemyShots(dt);
  for(const sp of sparks){sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;sp.z+=sp.vz*dt;sp.vy-=10*dt;sp.life-=dt}
