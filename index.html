@@ -1210,7 +1210,7 @@ function update(dt){
     }
     e.nextPanel++;
    }
-   if(e.nextPanel>=e.gain||gatePanelZ(e,e.gain-1)>player.z+2.2)e.used=true;
+   if(e.nextPanel>=e.gain)e.used=true;
   }else if(e.kind==='mob'){
    if(!e.touched&&e.z>=player.z-.16){
     e.touched=true;
