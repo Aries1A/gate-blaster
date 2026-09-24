@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#071725">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v17</title>
+<title>GATE BLASTER · WEBGL v18</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -498,7 +498,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v17</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
+ show(`<div class="eyebrow">WEBGL v18</div><h1>GATE <em>BLASTER</em></h1><p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best}</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -540,7 +540,7 @@ function doSpawn(e){
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
  }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,progress:0,length:8.5,used:false});
- else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,open:false,used:false});}
+ else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
  else if(e.kind==='boss'){
   const bp=bossProfile(stage);
   boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
@@ -559,7 +559,7 @@ function reward(e){
  for(let i=0;i<6;i++)text(['✦','+','★'][i%3],e.x+rnd(-1.2,1.2),rnd(1.4,3),e.z+rnd(-.8,.8),'#ffdd7a',.75);
 }
 function damage(e,value,source='rifle'){
- if(!e || e.used || mode!=='playing'||(e.kind==='crate'&&e.open))return;
+ if(!e || e.used || mode!=='playing')return;
  const crit=source!=='rifle' ? false : Math.random()<.09;
  const actual=(crit?value*1.65:value)*((player&&player.overdrive>0)?1.8:1);
  e.hp-=actual;e.hit=.12;
@@ -569,13 +569,8 @@ function damage(e,value,source='rifle'){
  }
  if(crit||source==='heli')burst(e.x,e.kind==='boss'?3.0:1.2,e.z,crit?C.spark:C.rocket,crit?8:13);
  if(e.hp<=0){
-  if(e.kind==='crate'){
-   e.hp=0;e.open=true;burst(e.x,1.1,e.z,C.gold,25);sfx('crateOpen');
-   text('★',e.x,2.0,e.z,'#ffec91',1.1);
-   cue(970,.16,'triangle',.04);
-   return;
-  }
-  e.used=true;burst(e.x,1.1,e.z,C.redLight,e.kind==='boss'?82:26);
+  e.used=true;burst(e.x,1.1,e.z,e.kind==='crate'?C.gold:C.redLight,e.kind==='boss'?82:26);
+  if(e.kind==='crate'){sfx('crateOpen');reward(e)}
   if(e.kind==='mob'){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
   if(e.kind==='boss')win();
  }
@@ -583,7 +578,7 @@ function damage(e,value,source='rifle'){
 
 function pickTarget(){
  let result=null,score=-1e9;
- for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind)||e.open||e.z>player.z+1)continue;
+ for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind)||e.z>player.z+1)continue;
   const typeBias=e.kind==='crate'?2.2:(e.mobType==='runner'?1.4:e.mobType==='brute'?-0.4:0);
   const sc=e.z*.22-Math.abs(e.x-player.x)*1.8+typeBias;
   if(sc>score){score=sc;result=e}
@@ -722,13 +717,8 @@ function update(dt){
     e.used=true;
    }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='crate'){
-   if(e.open){
-    // Opened crates are safe: collect the item by entering its lane.
-    if(Math.abs(e.x-player.x)<1.07&&Math.abs(e.z-player.z)<.84){
-     reward(e);e.used=true;
-    }
-   }else if(!e.touched&&Math.abs(e.z-player.z)<2.25){
-    // Count actual squad members overlapping the physical crate, not the player center.
+   if(!e.touched&&Math.abs(e.z-player.z)<2.25){
+    // An unopened crate blocks soldiers until it is destroyed.
     const hit=formation().filter(f=>Math.abs(f.x-e.x)<.85&&Math.abs(f.z-e.z)<.68);
     if(hit.length){
      e.touched=true;e.used=true;
@@ -795,7 +785,7 @@ function update(dt){
  for(const b of bullets){
   const oldZ=b.z;b.z+=b.vz*dt;b.life-=dt;if(b.life<=0)continue;
   let hit=null,near=1e6;
-  for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind)||e.open)continue;
+  for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind))continue;
    const dx=Math.abs(b.x-e.x),radius=e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
    if(dx>radius)continue; const dz=e.z-oldZ; if(dz>1.15||e.z<b.z-1.15)continue; if(dz<near){near=dz;hit=e}
   }
@@ -858,13 +848,7 @@ function drawGate(e){
  box(e.x,1.95,e.z-e.length/2,2.56,.2,.18,C.blueLight);
 }
 function drawCrate(e){
- if(e.open){
-  box(e.x,.19,e.z,1.65,.18,1.25,C.gold);
-  sphere(e.x,1.26+Math.sin(walk*8)*.14,e.z,.56,.56,.56,C.spark);
-  sphere(e.x,1.26+Math.sin(walk*8)*.14,e.z,.29,.29,.29,C.white);
-  box(e.x,2.01,e.z,1.26,.12,.12,C.gold,walk*2);
-  return;
- }
+
  box(e.x,.66,e.z,1.65,1.3,1.2,e.hit>0?C.white:C.wood);
  box(e.x,1.34,e.z,1.72,.12,1.27,C.woodTop);
  box(e.x-.86,.67,e.z,.12,1.22,1.27,C.woodTop);
@@ -930,7 +914,7 @@ function render(){
   }
   squad();drawSupport(); for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
  flush(); fx.clearRect(0,0,screenW,screenH); if(!player)return;
- for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(e.open?'★':({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
+ for(const e of entities){ if(e.kind==='gate' && e.z<-1 && e.z>-37){const p=project(e.x,2.05,e.z-e.length/2);if(p)tag('+'+Math.ceil(e.gain-e.taken),p.x,p.y,'#b5faff','#1464ad',p.scale*1.05);} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
  for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
  for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('CRIT')?25:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
