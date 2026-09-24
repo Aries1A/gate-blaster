@@ -289,7 +289,7 @@ function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[
 
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0;
-let soundOn=true,audioContext=null,musicStep=0,musicClock=0;
+let soundOn=true,audioContext=null,musicStep=0,musicClock=0,sfxTimes={};
 let bullets=[],enemyShots=[],runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false;
 const fieldThresholds=[4,10,18];
 
@@ -414,17 +414,34 @@ function music(dt){
  if(audioContext.state!=='running')return;
  musicClock-=dt;let guard=0;
  while(musicClock<=0&&guard++<3){
-  musicClock+=.115;const step=musicStep++%32,beat=step%16,bossOn=!!(boss&&!boss.used);
-  const roots=bossOn?[55,55,58.27,49]:[65.41,58.27,61.74,55],root=roots[Math.floor(step/8)];
-  if(beat%4===0)musicTone(beat===0?110:88,.19,.048,'sine');
-  if(beat===4||beat===12)musicTone(185,.09,.017,'sawtooth');
-  if(beat%2===0)musicTone(4200,.022,.003,'square');
-  if(beat%2===0)musicTone(root*(beat===6?2:1),.19,bossOn?.018:.013,'sawtooth');
-  const lead=[0,7,10,7,12,10,7,5,0,7,10,14,12,10,7,5];
-  if(beat%2===1)musicTone(root*4*Math.pow(2,lead[beat]/12),.075,bossOn?.010:.007,'triangle');
+  const bossOn=!!(boss&&!boss.used),hot=fever&&!bossOn,tempo=bossOn?.124:hot?.099:.113;
+  musicClock+=tempo;
+  const step=musicStep++%64,beat=step%16,bar=Math.floor(step/16);
+  const roots=bossOn?[55,58.27,49,55]:hot?[73.42,82.41,65.41,73.42]:[65.41,58.27,61.74,55],root=roots[bar];
+  if(beat%4===0)musicTone(beat===0?132:104,.17,bossOn?.093:hot?.082:.071,'sine');
+  if(beat===4||beat===12){musicTone(180,.078,bossOn?.042:.033,'sawtooth');musicTone(370,.045,.009,'square')}
+  if(beat%2===0||hot)musicTone(4500,.021,hot?.009:.006,'square');
+  if(beat%2===0)musicTone(root*(beat===6?2:1),.21,bossOn?.030:hot?.030:.027,'sawtooth');
+  const lead=bossOn?[0,3,7,10,12,10,7,3,0,5,7,12,15,12,10,7]:hot?[0,7,12,7,10,12,14,12,7,5,7,12,10,7,5,3]:[0,7,10,7,12,10,7,5,0,7,10,14,12,10,7,5];
+  if(beat%2===1||hot&&beat%2===0)musicTone(root*4*Math.pow(2,lead[beat]/12),hot?.085:.13,bossOn?.021:hot?.024:.020,'triangle');
+  if(beat===0||beat===8)musicTone(root*2*Math.pow(2,(bossOn?3:hot?7:4)/12),.34,.011,'sine');
  }
 }
-
+function sfx(kind){
+ if(!soundOn||!audioContext||audioContext.state!=='running')return;
+ const gap={shot:.10,hit:.13,bossHit:.15,crateHit:.12,kill:.12,fever:.6}[kind]||0;
+ if(sfxTimes[kind]!==undefined&&t-sfxTimes[kind]<gap)return;
+ sfxTimes[kind]=t;
+ if(kind==='shot'){musicTone(player.weapon>=5?495:395,.035,.013,'sawtooth');musicTone(180,.045,.009,'triangle')}
+ else if(kind==='hit')musicTone(270,.040,.014,'triangle');
+ else if(kind==='bossHit')musicTone(180,.07,.019,'sawtooth');
+ else if(kind==='crateHit')musicTone(520,.045,.024,'square');
+ else if(kind==='crateOpen'){musicTone(660,.11,.053,'triangle');musicTone(990,.15,.046,'triangle',.07)}
+ else if(kind==='pickup'){musicTone(760,.12,.047,'triangle');musicTone(1140,.15,.040,'triangle',.09)}
+ else if(kind==='kill'){musicTone(540,.075,.020,'triangle');musicTone(810,.075,.018,'triangle',.045)}
+ else if(kind==='fever'){for(let i=0;i<4;i++)musicTone(440*Math.pow(2,[0,4,7,12][i]/12),.18,.036,'triangle',i*.10)}
+ else if(kind==='bossStart'){musicTone(110,.29,.063,'sawtooth');musicTone(165,.24,.033,'sine',.13)}
+}
 function cue(freq=640,duration=.08,type='triangle',volume=.035){if(!soundOn)return;try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),a=audioContext.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*.68),audioContext.currentTime+duration);a.gain.setValueAtTime(volume,audioContext.currentTime);a.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+duration);o.connect(a);a.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+duration)}catch(e){soundOn=false}}
 function flash(col='hit'){flashTime=.17;impactFlash.style.background=col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)'}
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
@@ -435,7 +452,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];waveEvents=[];bossSiege=null;fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;bossIntro.classList.remove('show');
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
@@ -467,7 +484,7 @@ function reset(){
  $('stage-val').textContent=String(stage).padStart(2,'0'); announce(fever?'🔥 FEVER!':'STAGE '+stage+' '+stageModifier().name.split(' ')[0],1.5);
 }
 function start(){reset();mode='playing';overlay.classList.add('off');$('pause').textContent='Ⅱ';musicClock=0;musicStep=0;
- if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12)}
+ if(soundOn){try{audioContext=audioContext||new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch(e){soundOn=false}}cue(780,.12);if(fever)sfx('fever')}
 function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 
@@ -520,7 +537,7 @@ function doSpawn(e){
   const bp=bossProfile(stage);
   boss={kind:'boss',bossType:e.bossType||bp.id,name:bp.name,x:0,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon,siegeClock:.05,sway:0,used:false};
   introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${boss.name}</b>`;
-  bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);announce('⚠ BOSS',2.1);
+  bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);
  }
 }
 function burst(x,y,z,col,n=12){for(let i=0;i<n;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col})}
@@ -530,7 +547,7 @@ function reward(e){
  if(e.reward==='team'){player.team+=18;announce('👥 +18',1.25);cue(790,.22,'triangle',.052)}
  if(e.reward==='heli'){player.heli=Math.min(player.heli+1,2);announce('🚁 +1',1.65);cue(650,.3,'sawtooth',.05)}
  if(e.reward==='turret'){player.turret=Math.min(player.turret+1,2);announce('🔧 +1',1.65);cue(760,.3,'sawtooth',.05)}
- flash();burst(e.x,1.1,e.z,C.gold,26);
+ sfx('pickup');flash();burst(e.x,1.1,e.z,C.gold,26);
  for(let i=0;i<6;i++)text(['✦','+','★'][i%3],e.x+rnd(-1.2,1.2),rnd(1.4,3),e.z+rnd(-.8,.8),'#ffdd7a',.75);
 }
 function damage(e,value,source='rifle'){
@@ -538,19 +555,20 @@ function damage(e,value,source='rifle'){
  const crit=source!=='rifle' ? false : Math.random()<.09;
  const actual=(crit?value*1.65:value)*((player&&player.overdrive>0)?1.8:1);
  e.hp-=actual;e.hit=.12;
+ if(e.kind==='crate')sfx('crateHit');else if(e.kind==='boss')sfx('bossHit');else sfx('hit');
  if(crit){
   text('✦'+Math.round(actual),e.x+rnd(-.36,.36),e.kind==='boss'?5.5:1.65,e.z,'#ffe87b',.55);
  }
  if(crit||source==='heli')burst(e.x,e.kind==='boss'?3.0:1.2,e.z,crit?C.spark:C.rocket,crit?8:13);
  if(e.hp<=0){
   if(e.kind==='crate'){
-   e.hp=0;e.open=true;burst(e.x,1.1,e.z,C.gold,25);
+   e.hp=0;e.open=true;burst(e.x,1.1,e.z,C.gold,25);sfx('crateOpen');
    text('★',e.x,2.0,e.z,'#ffec91',1.1);
    cue(970,.16,'triangle',.04);
    return;
   }
   e.used=true;burst(e.x,1.1,e.z,C.redLight,e.kind==='boss'?82:26);
-  if(e.kind==='mob'){streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
+  if(e.kind==='mob'){sfx('kill');streak();earnEnergy(stageModifier().energy);text('⚡ +'+stageModifier().energy,e.x,rnd(1.5,2.1),e.z,'#ffe47e',.65)}
   if(e.kind==='boss')win();
  }
 }
@@ -758,7 +776,7 @@ function update(dt){
   warning=null;
  }}
  shotClock-=dt;
- if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);
+ if(shotClock<=0){shotClock+=Math.max(.05,.14/player.rate);sfx('shot');
   const count=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
   const squad=formation(),dmg=(9+player.weapon*5+player.drone*3)*player.power*(1+Math.min(combo,20)*.016);
   for(let i=0;i<count;i++){
