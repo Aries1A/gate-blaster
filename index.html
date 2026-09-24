@@ -769,7 +769,7 @@ function bossShotFloor(b){
  // fire divide the floor so a strong build never gets a free multiplier.
  const salvo=Math.min(12,Math.max(1,1+Math.floor(player.team/14)+Math.floor((commanderLevel()-1)/7)));
  const cadence=Math.max(.05,.14/player.rate);
- return b.maxHp*.0032 * (cadence/.14) / salvo;
+ return b.maxHp*(b.rushPart?.0048:.0032) * (cadence/.14) / salvo;
 }
 function bossCounter(){
  if(!boss||boss.used||mode!=='playing'||t-boss.lastCounter<2.1)return;
@@ -921,7 +921,12 @@ function updateBossSiege(dt){
 }
 function update(dt){
  if(mode!=='playing')return;
- t+=dt;walk+=dt;music(dt);if(player.overdrive>0)player.overdrive=Math.max(0,player.overdrive-dt);
+  t+=dt;walk+=dt;music(dt);
+ if(rushDelay>0){
+  rushDelay=Math.max(0,rushDelay-dt);
+  if(rushDelay<=0&&rushStarted&&!boss&&rushIndex<bossRushList().length)launchRushBoss();
+ }
+ if(player.overdrive>0)player.overdrive=Math.max(0,player.overdrive-dt);
  if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
  if(flashTime>0){flashTime-=dt;if(flashTime<=0)impactFlash.style.opacity='0'}
  if(introTime>0){introTime-=dt;if(introTime<=0)bossIntro.classList.remove('show')}
@@ -1020,8 +1025,9 @@ function update(dt){
   boss.phase=boss.hp/boss.maxHp<.32?3:boss.hp/boss.maxHp<.66?2:1;
   boss.summon-=dt;
   if(boss.summon<=0){
-   const lanes=boss.bossType==='crusher'?[-2.4,2.4]:boss.bossType==='hydra'?[-2.4,0,2.4]:[-2.2,2.2];
-   boss.summon=Math.max(4.0,5.6-boss.phase*.45-stage*.05);
+   const allLanes=boss.bossType==='crusher'?[-2.4,2.4]:boss.bossType==='hydra'?[-2.4,0,2.4]:[-2.2,2.2];
+   const lanes=boss.rushPart?allLanes.slice(0,1):allLanes;
+   boss.summon=Math.max(boss.rushPart?7.8:4.0,(boss.rushPart?9.0:5.6)-boss.phase*.45-stage*.05);
    for(const x of lanes){const type=x===0?'guard':(boss.bossType==='beetle'?'runner':boss.bossType==='crusher'?'brute':chooseMobType(Math.round(x*10+stage))); const n=type==='brute'?16+boss.phase*2:13+boss.phase*2; const hp=32+stage*16+boss.phase*14; doSpawn({kind:'mob',x,when:t,mobType:type,hp,n});}
    announce('⚠ +ENEMY',1.0);
   }
@@ -1246,7 +1252,7 @@ function updateHUD(){
  const pips=$('field-xp-pips').children;
  for(let i=0;i<pips.length;i++)pips[i].classList.toggle('on',i<fieldPicks);
  impactFlash.style.opacity=flashTime>0?'1':'0';
- if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':boss.weakTime>0?'⚡':['I','II','III'][boss.phase-1];$('boss-name').textContent=boss.name}
+ if(boss&&!boss.used){$('boss-fill').style.width=(clamp(boss.hp/boss.maxHp,0,1)*100)+'%';$('phase-val').textContent=bossSiege?'☄':boss.weakTime>0?'⚡':['I','II','III'][boss.phase-1];$('boss-name').textContent=(boss.rushPart?'👑 '+rushIndex+'/'+bossRushList().length+' ':'')+boss.name}
 }
 function frame(ts){const dt=Math.min(.04,(ts-(last||ts))/1000);last=ts;walk+=dt*.4;update(dt);render();updateHUD();requestAnimationFrame(frame)}
 function pointerX(e){const r=glCanvas.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width*2-1,-1,1)}
