@@ -484,6 +484,7 @@ function formation(team=player.team){
  return out;
 }
 function enemyPositions(e){
+ if(e.streamId)return [{x:e.x,z:e.z}];
  const n=Math.max(1,Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1))),cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols),out=[];
  for(let i=0;i<n;i++){const r=Math.floor(i/cols),c=i%cols;out.push({x:e.x+(c-(cols-1)/2)*.39,z:e.z+(r-(rows-1)/2)*.42});}
  return out;
