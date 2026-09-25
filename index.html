@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v26</title>
+<title>GATE BLASTER · WEBGL v27</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -747,10 +747,10 @@ function reset(){
   }
   // More densely staggered rows, including a late surge. Loot still rewards
   // clearing the lane; FEVER troops are individually fragile, not HP sponges.
-  for(let i=0;i<20;i++){
-   spawn('stream',3.0+i*1.16,{
-    x:[-1.65,1.55,0,1.8,-1.75][i%5],hp:mobHp+10+i*3,
-    n:15+(i%4)*3,mobType:chooseMobType(32+i),feverBonus:true
+  for(let i=0;i<32;i++){
+   spawn('stream',2.55+i*.72,{
+    x:[-1.65,1.55,0,1.8,-1.75,.8,-.8][i%7],hp:mobHp+7+i*2,
+    n:20+(i%5)*4,mobType:chooseMobType(32+i),feverBonus:true
    });
   }
  }
@@ -771,7 +771,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v26 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v27 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -884,12 +884,12 @@ function doSpawn(e){
   // Dense troop bands: rows span the road; every soldier remains individually hittable.
   // Preserve original wave HP and one kill-energy credit per wave.
   const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
-  const total=Math.min(e.feverBonus?78:55,Math.max(e.feverBonus?46:30,Math.ceil(e.n*a.n*(e.feverBonus?1.72:1.38))));
+  const total=Math.min(e.feverBonus?110:55,Math.max(e.feverBonus?72:30,Math.ceil(e.n*a.n*(e.feverBonus?2.05:1.38))));
   const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
   const id=++streamSerial;
   streamGroups[id]={total,defeated:0,credited:false,contactLosses:0};
-  const columns=Math.min(12,Math.max(9,Math.ceil(Math.sqrt(total*3))));
-  streams.push({id,x:e.x,type,total,columns,hp:Math.max(6,Math.ceil(original/total)),speed:7.0+a.speed+mod.speed,interval:e.feverBonus?.077:type==='runner'?.083:.105,clock:0,emitted:0});
+  const columns=Math.min(12,Math.max(e.feverBonus?12:9,Math.ceil(Math.sqrt(total*3))));
+  streams.push({id,x:e.x,type,total,columns,hp:Math.max(e.feverBonus?4:6,Math.ceil(original/total)),speed:(e.feverBonus?5.65:7.0)+a.speed+(e.feverBonus?mod.speed*.35:mod.speed),interval:e.feverBonus?.064:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
@@ -1219,7 +1219,7 @@ function update(dt){
      // A wide visual row consists of many separate actors. Treat contact as one
      // strike, not a loss for every overlapping soldier in the same row.
      const wave=streamGroups[e.streamId];
-     if(wave&&wave.contactLosses<(fever?2:3)&&t-lastStreamHit>=.24&&player.team>=1){
+     if(wave&&wave.contactLosses<(fever?1:3)&&t-lastStreamHit>=.24&&player.team>=1){
       const touching=formation().find(f=>Math.abs(f.x-e.x)<.34&&Math.abs(f.z-e.z)<.43);
       if(touching){
        const lost=1;
@@ -1346,7 +1346,7 @@ function update(dt){
     // row, rather than requiring a separate bullet for every narrow hitbox.
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<3.45);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
-    const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,4);
+    const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,fever?6:4);
     for(const [i,e] of targets.entries()){
      damage(e,b.damage*(i===0?1:.85),'rifle');
      if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
