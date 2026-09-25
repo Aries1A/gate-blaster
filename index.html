@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>広告のアレ · WEBGL v47</title>
+<title>広告のアレ · WEBGL v48</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -683,18 +683,59 @@ function music(dt){
  if(!soundOn||mode!=='playing')return;
  if(!ensureAudio()||audioContext.state!=='running')return;
  musicClock-=dt;let guard=0;
- while(musicClock<=0&&guard++<3){
-  const bossOn=!!(boss&&!boss.used),hot=fever&&!bossOn,tempo=bossOn?.124:hot?.099:.113;
+ while(musicClock<=0&&guard++<4){
+  const bossOn=!!(boss&&!boss.used),hot=fever&&!bossOn;
+  const finalBattle=stage===5,emergency=finalBattle&&rushStarted;
+  const tempo=emergency?.066:finalBattle?.078:bossOn?.124:hot?.099:.113;
   musicClock+=tempo;
   const step=musicStep++%64,beat=step%16,bar=Math.floor(step/16);
-  const roots=bossOn?[55,58.27,49,55]:hot?[73.42,82.41,65.41,73.42]:[65.41,58.27,61.74,55],root=roots[bar];
-  if(beat%4===0)musicTone(beat===0?132:104,.17,bossOn?.093:hot?.082:.071,'sine');
-  if(beat===4||beat===12){musicTone(180,.078,bossOn?.042:.033,'sawtooth');musicTone(370,.045,.009,'square')}
-  if(beat%2===0||hot)musicTone(4500,.021,hot?.009:.006,'square');
-  if(beat%2===0)musicTone(root*(beat===6?2:1),.21,bossOn?.030:hot?.030:.027,'sawtooth');
-  const lead=bossOn?[0,3,7,10,12,10,7,3,0,5,7,12,15,12,10,7]:hot?[0,7,12,7,10,12,14,12,7,5,7,12,10,7,5,3]:[0,7,10,7,12,10,7,5,0,7,10,14,12,10,7,5];
-  if(beat%2===1||hot&&beat%2===0)musicTone(root*4*Math.pow(2,lead[beat]/12),hot?.085:.13,bossOn?.021:hot?.024:.020,'triangle');
-  if(beat===0||beat===8)musicTone(root*2*Math.pow(2,(bossOn?3:hot?7:4)/12),.34,.011,'sine');
+  const roots=emergency?[49,55,46.25,58.27]:
+   finalBattle?[55,49,58.27,46.25]:
+   bossOn?[55,58.27,49,55]:
+   hot?[73.42,82.41,65.41,73.42]:[65.41,58.27,61.74,55];
+  const root=roots[bar];
+
+  // Stage 5 is a dedicated high-BPM final-battle track. Emergency pushes it
+  // even faster without adding excessive oscillators during the 9-boss rush.
+  if(beat%4===0)musicTone(
+   beat===0?(emergency?148:140):(emergency?118:110),
+   finalBattle?.13:.17,
+   emergency?.086:finalBattle?.080:bossOn?.093:hot?.082:.071,
+   'sine'
+  );
+  if(beat===4||beat===12){
+   musicTone(finalBattle?205:180,finalBattle?.060:.078,finalBattle?.042:bossOn?.042:.033,'sawtooth');
+   musicTone(finalBattle?465:370,.040,finalBattle?.012:.009,'square');
+  }
+  if(finalBattle||beat%2===0||hot){
+   const hatAccent=beat%4===2?1.35:1;
+   musicTone(emergency?6100:finalBattle?5400:4500,.016,(emergency?.0065:finalBattle?.0075:hot?.009:.006)*hatAccent,'square');
+  }
+
+  const bassPattern=finalBattle?[0,0,7,0,10,7,12,7,0,0,7,10,12,10,7,3]:null;
+  if(beat%2===0){
+   const bassFreq=finalBattle
+    ?root*Math.pow(2,bassPattern[beat]/12)
+    :root*(beat===6?2:1);
+   musicTone(bassFreq,finalBattle?.15:.21,finalBattle?.034:bossOn?.030:hot?.030:.027,'sawtooth');
+  }
+
+  const lead=emergency?[0,7,12,15,12,10,7,12,3,10,15,19,15,12,10,7]:
+   finalBattle?[0,7,10,12,15,12,10,7,3,10,12,15,17,15,12,10]:
+   bossOn?[0,3,7,10,12,10,7,3,0,5,7,12,15,12,10,7]:
+   hot?[0,7,12,7,10,12,14,12,7,5,7,12,10,7,5,3]:
+   [0,7,10,7,12,10,7,5,0,7,10,14,12,10,7,5];
+  if(emergency||finalBattle&&beat%2===1||!finalBattle&&(beat%2===1||hot&&beat%2===0)){
+   musicTone(
+    root*4*Math.pow(2,lead[beat]/12),
+    emergency?.070:finalBattle?.092:hot?.085:.13,
+    emergency?.019:finalBattle?.021:bossOn?.021:hot?.024:.020,
+    emergency?'sawtooth':'triangle'
+   );
+  }
+  if(beat===0||beat===8){
+   musicTone(root*2*Math.pow(2,(emergency?7:finalBattle?5:bossOn?3:hot?7:4)/12),finalBattle?.24:.34,finalBattle?.013:.011,'sine');
+  }
  }
 }
 function sfx(kind){
@@ -713,14 +754,38 @@ function sfx(kind){
  else if(kind==='bossStart'){musicTone(110,.29,.063,'sawtooth');musicTone(165,.24,.033,'sine',.13)}
  audioChannel='bgm';
 }
-function cue(freq=640,duration=.08,type='triangle',volume=.035){
+function cue(freq=640,duration=.08,type='triangle',volume=.035,at=0){
  if(!soundOn||!ensureAudio())return;
  try{
-  const now=audioContext.currentTime,o=audioContext.createOscillator(),a=audioContext.createGain();
+  const now=audioContext.currentTime+at,o=audioContext.createOscillator(),a=audioContext.createGain();
   o.type=type;o.frequency.setValueAtTime(freq,now);
   o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*.68),now+duration);
   a.gain.setValueAtTime(volume,now);a.gain.exponentialRampToValueAtTime(.0001,now+duration);
-  o.connect(a);a.connect(seBus);o.start(now);o.stop(now+duration);
+  o.connect(a);a.connect(seBus);o.start(now);o.stop(now+duration+.02);
+ }catch(e){}
+}
+function emergencyAlarm(){
+ if(!soundOn||!ensureAudio()||!seBus)return;
+ try{
+  const now=audioContext.currentTime;
+  const siren=audioContext.createOscillator(),gain=audioContext.createGain();
+  siren.type='sawtooth';
+  siren.frequency.setValueAtTime(118,now);
+  for(let i=0;i<4;i++){
+   siren.frequency.linearRampToValueAtTime(238,now+i*.44+.22);
+   siren.frequency.linearRampToValueAtTime(118,now+i*.44+.44);
+  }
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.linearRampToValueAtTime(.030,now+.04);
+  gain.gain.setValueAtTime(.030,now+1.62);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+1.82);
+  siren.connect(gain);gain.connect(seBus);
+  siren.start(now);siren.stop(now+1.85);
+  for(let i=0;i<8;i++){
+   cue(i%2?760:980,.075,'square',.026,i*.19+.04);
+  }
+  cue(72,.72,'sawtooth',.070,0);
+  cue(86,.58,'sawtooth',.052,.88);
  }catch(e){}
 }
 function flash(col='hit'){
@@ -799,7 +864,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v47 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v48 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -901,9 +966,10 @@ function startEmergencyRush(){
  waveEvents=[];eventIndex=0;fieldChoicePending=false;
  rushStarted=true;rushIndex=0;rushDelay=2.15;
  rushAidClock=0;rushAidCount=0;rushAidActive=false;
+ musicClock=0;musicStep=0;
  bossIntro.innerHTML='<span>⚠ SYSTEM ALERT ⚠</span><b>EMERGENCY</b>';
  bossIntro.classList.add('show','emergency');introTime=1.95;
- cue(88,.55,'sawtooth',.075);cue(132,.42,'square',.038);
+ emergencyAlarm();
 }
 function campaignVictory(){
  mode='finished';bossSiege=null;warning=null;rushDelay=0;rushAidActive=false;best=5;
