@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v42</title>
+<title>GATE BLASTER · WEBGL v43</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -469,7 +469,7 @@ addEventListener('resize',resize,{passive:true});resize();
 function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[0]+VP[4+i]*q[1]+VP[8+i]*q[2]+VP[12+i];if(o[3]<=0)return null;return{x:screenW*(.5+o[0]/o[3]*.5),y:screenH*(.5-o[1]/o[3]*.5),scale:clamp(16/o[3],.35,2.8)}}
 
 let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=15,drag=null;
-let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0,muzzleTime=0,rings=[],playerDamageSerial=0;
+let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0,muzzleTime=0,rings=[],playerDamageSerial=0,rushAidClock=0,rushAidCount=0,rushAidActive=false;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0,sfxTimes={};
 let masterVolume=1,bgmVolume=1,seVolume=1,masterBus=null,bgmBus=null,seBus=null,audioCompressor=null,audioChannel='bgm',settingsReturnMode=null,previewClock=-1;
 try{
@@ -739,7 +739,7 @@ function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';n
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
 function reset(){
- t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;rushBosses=[];bossHazards=[];fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];playerDamageSerial=0;bossIntro.classList.remove('show','emergency');
+ t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;rushBosses=[];bossHazards=[];fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];playerDamageSerial=0;rushAidClock=0;rushAidCount=0;rushAidActive=false;bossIntro.classList.remove('show','emergency');
  $('game').dataset.stage=String(stage);
  const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,power:b.power,rate:b.rate,armor:b.armor,pierce:b.pierce||0,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
@@ -797,7 +797,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v42 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v43 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -898,12 +898,13 @@ function startEmergencyRush(){
  enemyShots=[];bullets=[];entities=[];streams=[];streamGroups={};
  waveEvents=[];eventIndex=0;fieldChoicePending=false;
  rushStarted=true;rushIndex=0;rushDelay=2.15;
+ rushAidClock=0;rushAidCount=0;rushAidActive=false;
  bossIntro.innerHTML='<span>⚠ SYSTEM ALERT ⚠</span><b>EMERGENCY</b>';
  bossIntro.classList.add('show','emergency');introTime=1.95;
  cue(88,.55,'sawtooth',.075);cue(132,.42,'square',.038);
 }
 function campaignVictory(){
- mode='finished';bossSiege=null;warning=null;rushDelay=0;best=5;
+ mode='finished';bossSiege=null;warning=null;rushDelay=0;rushAidActive=false;best=5;
  try{localStorage.setItem('gate-blaster-webgl-best','5')}catch(e){}
  cue(1080,.42,'triangle',.065);flash();
  const bits=Array.from({length:40},(_,i)=>'<i style="--x:'+(i*37)%100+'%;--d:'+(2.1+(i%5)*.45)+'s;--delay:'+-((i%7)*.42)+'s;--r:'+(i*29)+'deg;--s:'+((i%2?-1:1)*(18+i%24))+'vw;--c:'+['#ffd65c','#63ffe8','#ff617b','#70abff'][i%4]+'"></i>').join('');
@@ -963,6 +964,30 @@ function doSpawn(e){
 function burst(x,y,z,col,n=12){
  const room=Math.max(0,240-sparks.length),count=Math.min(n,room);
  for(let i=0;i<count;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col});
+}
+function spawnRushAid(){
+ const types=['team','power','rate'],type=types[rushAidCount%types.length];
+ rushAidCount++;
+ entities.push({
+  kind:'boost',boostType:type,x:0,z:-29,y:0,speed:9.4,
+  used:false,seed:rushAidCount*7.1
+ });
+ announce('🎁 BOOST INBOUND',1.4);
+ cue(720,.18,'triangle',.045);
+}
+function collectRushAid(e){
+ if(e.boostType==='team'){
+  player.team+=18;
+  announce('👥 RESCUE +18',1.35);
+ }else if(e.boostType==='power'){
+  player.power*=1.25;
+  announce('💥 POWER +25%',1.35);
+ }else{
+  player.rate*=1.20;
+  announce('⚡ RATE +20%',1.35);
+ }
+ sfx('pickup');flash();burst(player.x,1.15,player.z,C.gold,28);
+ pulse(player.x,1.4,player.z,'#fff09a',.62);
 }
 function pulse(x,y,z,color='#fff1b0',duration=.38){
  if(rings.length>20)rings.shift();
@@ -1234,6 +1259,20 @@ function update(dt){
   rushDelay=Math.max(0,rushDelay-dt);
   if(rushDelay<=0&&rushStarted&&rushIndex===0)launchRushBoss();
  }
+ if(rushStarted&&activeBosses().length){
+  const arrived=activeBosses().some(b=>b.z>=player.z-4.7);
+  if(arrived&&!rushAidActive){
+   rushAidActive=true;rushAidClock=10;
+   announce('🎁 SURVIVE 10s',1.25);
+  }
+  if(rushAidActive){
+   rushAidClock-=dt;
+   if(rushAidClock<=0){
+    spawnRushAid();
+    rushAidClock+=10;
+   }
+  }
+ }
  if(player.overdrive>0)player.overdrive=Math.max(0,player.overdrive-dt);
  if(comboTime>0){comboTime-=dt;if(comboTime<=0)combo=0}
  if(flashTime>0){flashTime-=dt;if(flashTime<=0)impactFlash.style.opacity='0'}
@@ -1263,7 +1302,12 @@ function update(dt){
  player.x+=(player.tx-player.x)*Math.min(1,dt*11);
  for(const e of entities){
   if(e.used)continue;e.z+=e.speed*dt;if(e.hit>0)e.hit-=dt;
-  if(e.kind==='gate'){
+  if(e.kind==='boost'){
+   e.x+=(player.x-e.x)*Math.min(1,dt*3.2);
+   if(e.z>=player.z-.35){
+    collectRushAid(e);e.used=true;
+   }
+  }else if(e.kind==='gate'){
    // Process the actual panes crossed this frame, one by one. A panel cannot
    // be collected later by switching lanes after it already went past.
    while(e.nextPanel<e.gain&&gatePanelZ(e,e.nextPanel)>=player.z){
@@ -1614,6 +1658,16 @@ function drawGate(e){
  for(const sign of [-1,1])soft(e.x+sign*1.23,.22,e.z,.11,.23,e.length,C.blueLight);
 }
 
+function drawBoost(e){
+ const bob=.16*Math.sin(walk*7+e.seed),spin=walk*2.4+e.seed;
+ sphere(e.x,.10,e.z,1.10,.05,.90,C.shadow);
+ sphere(e.x,1.25+bob,e.z,.63,.63,.63,C.gold);
+ sphere(e.x,1.25+bob,e.z,.35,.35,.35,C.armorHi);
+ for(const sign of [-1,1]){
+  box(e.x+sign*.73,1.25+bob,e.z,.52,.10,.18,C.cyan,spin*sign);
+  box(e.x,1.25+bob,e.z+sign*.73,.18,.10,.52,C.warn,spin*sign);
+ }
+}
 function drawCrate(e){
  // A beveled loot case, with a large readable top emblem and side locks.
  sphere(e.x,.055,e.z,1.75,.04,1.34,C.shadow);
@@ -1778,7 +1832,7 @@ function squad(){
 
 function render(){
  gl.useProgram(program);gl.uniformMatrix4fv(uVP,false,VP);gl.uniform3fv(uCam,camera);world();gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e)} for(const active of activeBosses())drawBoss(active); if(warning){
+ if(player){ for(const e of entities){if(e.kind==='mob')drawMob(e);if(e.kind==='gate')drawGate(e);if(e.kind==='crate')drawCrate(e);if(e.kind==='boost')drawBoost(e)} for(const active of activeBosses())drawBoss(active); if(warning){
    const w=warning.width||2.25,flashWarn=Math.sin(walk*17)>0;
    box(warning.x,.17,player.z-.25,w*2,.02,6.8,flashWarn?[1,.31,.21,1]:[.90,.18,.29,1]);
    for(const sign of [-1,1])box(warning.x+sign*w,.20,player.z-.25,.085,.045,6.8,C.warn);
@@ -1857,7 +1911,7 @@ function render(){
     shown++;
    }
   }
-} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
+} else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='boost'){const p=project(e.x,2.05,e.z);if(p&&p.y>-40&&p.y<screenH)tag(({team:'👥 +18',power:'💥 +25%',rate:'⚡ +20%'}[e.boostType]||'BOOST'),p.x,p.y,'#fff6ad','#7a5310',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const orb of bossHazards){
   if(orb.kind!=='orb')continue;
   const p=project(orb.x,orb.y,orb.z);if(!p)continue;
@@ -1884,7 +1938,7 @@ function updateHUD(){
  $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%';
  $('boss-hud').style.display=boss&&!boss.used?'block':'none';
  $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
- $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+(player.pierce?'➤×3　':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
+ $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+(rushStarted&&rushAidActive?'🎁'+Math.max(0,Math.ceil(rushAidClock))+'s<br>':'')+(player.pierce?'➤×3　':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
  const rule=stageModifier();$('stage-rule').textContent=fever?'🔥':rule.name.split(' ')[0];$('stage-rule').title=fever?'FEVER · '+rule.name:rule.name+' · '+rule.info;
  const thresholds=fieldThresholdsForStage(),prev=fieldPicks>0?thresholds[fieldPicks-1]:0,next=thresholds[fieldPicks];
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
