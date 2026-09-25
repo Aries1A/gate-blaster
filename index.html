@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>広告のアレ · WEBGL v46</title>
+<title>広告のアレ · WEBGL v47</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -573,7 +573,7 @@ function fieldOptionPool(){
   {id:'rapid',icon:'⚡',title:'連射',desc:'連射 +25%'},
   {id:'power',icon:'💥',title:'火力',desc:'火力 +28%'},
   {id:'overdrive',icon:'🌟',title:'OD',desc:'9秒間 火力 +80%'},
-  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚を最大3体まで貫通'}
+  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚3体まで · 100%→60%→35%'}
  ].filter(o=>o.id!=='pierce'||!player.pierce);
  const defense=[
   {id:'team',icon:'👥',title:'増援',desc:'人数 +12'},
@@ -799,7 +799,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v46 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v47 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -828,7 +828,7 @@ function stageClear(){
   {id:'power',icon:'💥',title:'火力 +25%',desc:'弾・支援 +25%'},
   {id:'weapon',icon:'🔫',title:'武器 +1',desc:'武器 +1'},
   {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'},
-  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚を最大3体まで貫通'}
+  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚3体まで · 100%→60%→35%'}
  ].filter(o=>o.id!=='pierce'||!runBuild.pierce);
  const survival=[
   {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
@@ -1442,7 +1442,7 @@ function update(dt){
   const squad=formation(),dmg=(9+player.weapon*5+player.drone*3)*player.power*(1+Math.min(combo,20)*.016);
   for(let i=0;i<count;i++){
    const f=squad[Math.min(squad.length-1,Math.floor((i+.5)*squad.length/count))];
-   bullets.push({x:f.x,y:1.2,z:f.z-1.02,vz:-43,damage:dmg,life:1.25,color:player.overdrive>0||i%3===0?'gold':'cyan',pierceLeft:player.pierce||0});
+   bullets.push({x:f.x,y:1.2,z:f.z-1.02,vz:-43,damage:dmg,life:1.25,color:player.overdrive>0||i%3===0?'gold':'cyan',pierceLeft:player.pierce||0,pierceHits:0});
   }
  }
  for(const b of bullets){
@@ -1464,8 +1464,10 @@ function update(dt){
    }
   }
   if(hit){
-   if(hit.streamId){
-    // One visible shot sweeps across nearby soldiers in the same front row.
+   const pierceScale=b.pierceHits===0?1:b.pierceHits===1?.60:.35;
+   if(hit.streamId&&b.pierceHits===0){
+    // Keep the familiar row sweep only on the first impact. Secondary
+    // penetrations hit a single target with reduced damage.
     const sweep=fever?1.28:1.12;
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<sweep);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
@@ -1475,13 +1477,14 @@ function update(dt){
      if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
     }
    }else{
-    damage(hit,b.damage,'rifle');
+    damage(hit,b.damage*pierceScale,'rifle');
     burst(b.x,hit.kind==='boss'?3.5:1.4,hit.z,b.color==='gold'?C.spark:C.cyan,4);
    }
    if(hit.kind==='mob'&&b.pierceLeft>1){
     b.pierceLeft--;
+    b.pierceHits++;
     b.z=hit.z-.72;
-    pulse(hit.x,1.15,hit.z,'#8dfff0',.18);
+    pulse(hit.x,1.15,hit.z,b.pierceHits===1?'#8dfff0':'#7cc9ff',.16);
    }else{
     b.life=0;
    }
