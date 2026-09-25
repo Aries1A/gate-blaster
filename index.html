@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v32</title>
+<title>GATE BLASTER · WEBGL v33</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -717,9 +717,16 @@ function cue(freq=640,duration=.08,type='triangle',volume=.035){
 }
 function flash(col='hit'){
  flashTime=col==='doom'?.42:.17;
- impactFlash.style.background=col==='doom'
-  ?'radial-gradient(circle at 50% 55%,#ffffff 0 7%,#ffd36dcc 19%,#ff315faa 43%,#56001dbb 72%,transparent 100%)'
-  :col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)';
+ if(col==='doom'){
+  impactFlash.style.background='transparent';
+  impactFlash.style.boxShadow='inset 0 0 0 12px #ff304fcc, inset 0 0 48px 12px #ff173f99';
+ }else if(col==='hurt'){
+  impactFlash.style.background='transparent';
+  impactFlash.style.boxShadow='inset 0 0 0 6px #ff4050aa, inset 0 0 28px 6px #ff203e77';
+ }else{
+  impactFlash.style.background='radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)';
+  impactFlash.style.boxShadow='none';
+ }
 }
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
 
@@ -787,7 +794,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v32 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v33 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
