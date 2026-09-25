@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v37</title>
+<title>GATE BLASTER · WEBGL v38</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -467,7 +467,7 @@ function resize(){
 addEventListener('resize',resize,{passive:true});resize();
 function project(x,y,z){const q=[x,y,z,1],o=[];for(let i=0;i<4;i++)o[i]=VP[i]*q[0]+VP[4+i]*q[1]+VP[8+i]*q[2]+VP[12+i];if(o[3]<=0)return null;return{x:screenW*(.5+o[0]/o[3]*.5),y:screenH*(.5-o[1]/o[3]*.5),scale:clamp(16/o[3],.35,2.8)}}
 
-let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=13,drag=null;
+let mode='menu',stage=1,best=1,t=0,last=0,player,entities=[],sparks=[],texts=[],boss=null,waveEvents=[],eventIndex=0,warning=null,noticeTime=0,shotClock=0,walk=0,squadBuffer=15,drag=null;
 let combo=0,comboTime=0,maxCombo=0,kills=0,helicopterClock=0,turretClock=0,flashTime=0,introTime=0,muzzleTime=0,rings=[],playerDamageSerial=0;
 let soundOn=true,audioContext=null,musicStep=0,musicClock=0,sfxTimes={};
 let masterVolume=1,bgmVolume=1,seVolume=1,masterBus=null,bgmBus=null,seBus=null,audioCompressor=null,audioChannel='bgm',settingsReturnMode=null,previewClock=-1;
@@ -539,7 +539,7 @@ function fieldThresholdsForStage(idx=stage){
  return idx===3?[4,10,18,30,44]:[4,10,18];
 }
 
-function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0}}
+function makeBuild(){return {team:15,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0}}
 function feverStage(index=stage){return index===3;}
 function stageModifier(idx=stage){
  if(idx===5)return {id:'final',name:'👑 FINAL',info:'ラストステージ',hp:1.10,speed:.20,shot:.98,boss:1.05,energy:1};
@@ -774,7 +774,7 @@ function reset(){
    });
   }
  }
- const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss),bossType:bp.id,rushPart:0});
+ const bp=bossProfile(stage); spawn('boss',29.0,{hp:Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*.88),bossType:bp.id,rushPart:0});
  waveEvents.sort((a,b)=>a.when-b.when);
  $('stage-val').textContent=String(stage).padStart(2,'0'); announce(fever?'🔥 FEVER!':'STAGE '+stage+' '+stageModifier().name.split(' ')[0],1.5);
 }
@@ -791,7 +791,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v37 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v38 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -847,7 +847,7 @@ function launchRushBoss(){
  const parts=bossRushList();
  boss=null;rushBosses=[];
  for(let i=0;i<parts.length;i++){
-  const part=parts[i],hp=Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*part.factor);
+  const part=parts[i],hp=Math.ceil((3200+stage*1500)*1.58*2.5*stageModifier().boss*part.factor*.88);
   doSpawn({kind:'boss',when:t,bossType:part.id,rushPart:i+1,hp});
  }
  rushIndex=parts.length;
@@ -928,14 +928,14 @@ function doSpawn(e){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
   const dense=!!(e.denseBonus||e.feverBonus);
   const total=Math.min(dense?110:55,Math.max(dense?72:30,Math.ceil(e.n*a.n*(dense?2.05:1.38))));
-  const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
+  const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.05);
   const id=++streamSerial;
   streamGroups[id]={total,defeated:0,credited:false,contactLosses:0,dense};
   const columns=Math.min(12,Math.max(dense?12:9,Math.ceil(Math.sqrt(total*3))));
   streams.push({id,x:e.x,type,total,columns,dense,hp:Math.max(dense?4:6,Math.ceil(original/total)),speed:(dense?5.65:7.0)+a.speed+(dense?mod.speed*.35:mod.speed),interval:dense?.064:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
-  const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
+  const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.05);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
  }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,nextPanel:0,length:8.5,used:false});
  else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
