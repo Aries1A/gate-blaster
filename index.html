@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v31</title>
+<title>GATE BLASTER · WEBGL v32</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -45,7 +45,7 @@ h1{font-size:clamp(35px,10vw,50px);line-height:1;letter-spacing:-.035em;margin:1
 h1 em{font-style:normal;color:#ffcf65}
 p{font-size:13px;color:#c4dce9;line-height:1.8;margin:16px 0}
 .cta{width:100%;border:0;border-radius:13px;padding:15px 12px;background:linear-gradient(120deg,#9cffe3,#45c2f2);color:#062b3c;font-size:16px;font-weight:1000;box-shadow:0 5px 0 #188da4,0 12px 25px #0005}
-.cta:active{transform:translateY(3px);box-shadow:0 2px 0 #188da4}
+.cta:active{transform:translateY(3px);box-shadow:0 2px 0 #188da4}.retry-actions{display:grid;gap:10px;margin-top:16px}.retry-actions .cta.secondary{background:linear-gradient(120deg,#243f56,#315f78);color:#dff8ff;box-shadow:0 5px 0 #173649,0 12px 25px #0005}
 .mini{font-size:11px;line-height:1.7;color:#89b5ce;margin-top:15px}
 #combo-hud{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 189px);transform:translateX(-50%) scale(.9);padding:5px 14px 8px;border:1px solid #ffce6caa;border-radius:14px;background:linear-gradient(145deg,#53351bea,#20162bf2);box-shadow:0 3px 25px #ffbd453b;text-align:center;opacity:0;transition:opacity .12s,transform .12s;min-width:130px}
 #combo-hud.show{opacity:1;transform:translateX(-50%) scale(1)}
@@ -787,7 +787,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v31 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v32 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -893,7 +893,13 @@ function win(){
  if(activeBosses().length===0)campaignVictory();
 }
 
-function lose(){if(mode!=='playing')return;bossSiege=null;mode='lost';show(`<div class="eyebrow">STAGE ${stage} / 5</div>${stagePath(stage-1,stage)}<h1>GAME <em>OVER</em></h1><button class="cta" id="retry">↻ RETRY</button><div class="mini">🏆 ${best} / 5</div>`);$('retry').onclick=beginRun}
+function lose(){
+ if(mode!=='playing')return;
+ bossSiege=null;warning=null;mode='lost';
+ show(`<div class="eyebrow">STAGE ${stage} / 5</div>${stagePath(stage-1,stage)}<h1>GAME <em>OVER</em></h1><div class="retry-actions"><button class="cta" id="retry-stage">↻ STAGE ${stage} から</button><button class="cta secondary" id="retry-run">⟲ 最初から</button></div><div class="mini">🏆 ${best} / 5</div>`);
+ $('retry-stage').onclick=start;
+ $('retry-run').onclick=beginRun;
+}
 
 function doSpawn(e){
  if(e.kind==='stream'){
