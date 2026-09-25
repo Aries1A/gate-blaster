@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v40</title>
+<title>GATE BLASTER · WEBGL v41</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -539,7 +539,7 @@ function fieldThresholdsForStage(idx=stage){
  return idx===3?[4,10,18,30,44]:[4,10,18];
 }
 
-function makeBuild(){return {team:15,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0}}
+function makeBuild(){return {team:15,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0,pierce:0}}
 function feverStage(index=stage){return index===3;}
 function stageModifier(idx=stage){
  if(idx===5)return {id:'final',name:'👑 FINAL',info:'ラストステージ',hp:1.10,speed:.20,shot:.98,boss:1.05,energy:1};
@@ -569,8 +569,9 @@ function fieldOptionPool(){
  const offense=[
   {id:'rapid',icon:'⚡',title:'連射',desc:'連射 +25%'},
   {id:'power',icon:'💥',title:'火力',desc:'火力 +28%'},
-  {id:'overdrive',icon:'🌟',title:'OD',desc:'9秒間 火力 +80%'}
- ];
+  {id:'overdrive',icon:'🌟',title:'OD',desc:'9秒間 火力 +80%'},
+  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚を最大3体まで貫通'}
+ ].filter(o=>o.id!=='pierce'||!player.pierce);
  const defense=[
   {id:'team',icon:'👥',title:'増援',desc:'人数 +12'},
   {id:'regroup',icon:'🪖',title:'再編成',desc:'人数 +8 · 防御 +5%'},
@@ -595,6 +596,7 @@ function openFieldChoice(){
   if(id==='rapid')player.rate*=1.25;
   if(id==='power')player.power*=1.28;
   if(id==='overdrive')player.overdrive=Math.max(player.overdrive||0,9);
+   if(id==='pierce')player.pierce=3;
   if(id==='team')player.team+=12;
   if(id==='regroup'){player.team+=8;player.armor=Math.min(.7,player.armor+.05)}
   if(id==='armor')player.armor=Math.min(.7,player.armor+.15);
@@ -735,7 +737,7 @@ function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 function reset(){
  t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;rushBosses=[];bossHazards=[];fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];playerDamageSerial=0;bossIntro.classList.remove('show','emergency');
  $('game').dataset.stage=String(stage);
- const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
+ const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,power:b.power,rate:b.rate,armor:b.armor,pierce:b.pierce||0,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
  const mob=(when,x,hp,n,type)=>spawn('stream',when,{x,hp,n,mobType:type});
@@ -791,7 +793,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v40 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v41 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -803,6 +805,7 @@ function selectPersistentUpgrade(id){
  if(id==='team')runBuild.team+=8;
  if(id==='weapon')runBuild.weapon=Math.min(9,runBuild.weapon+1);
  if(id==='rate')runBuild.rate*=1.2;
+ if(id==='pierce')runBuild.pierce=3;
  if(id==='reserve')runBuild.team+=14;
  if(id==='armor')runBuild.armor=Math.min(.6,runBuild.armor+.15);
  if(id==='drone')runBuild.drone=Math.min(4,runBuild.drone+1);
@@ -818,7 +821,9 @@ function stageClear(){
  const offense=[
   {id:'power',icon:'💥',title:'火力 +25%',desc:'弾・支援 +25%'},
   {id:'weapon',icon:'🔫',title:'武器 +1',desc:'武器 +1'},
-  {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'}];
+  {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'},
+  {id:'pierce',icon:'➤',title:'貫通弾',desc:'雑魚を最大3体まで貫通'}
+ ].filter(o=>o.id!=='pierce'||!runBuild.pierce);
  const survival=[
   {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
   {id:'reserve',icon:'🪖',title:'大増援 +14',desc:'次から人数 +14'},
@@ -1384,7 +1389,7 @@ function update(dt){
   const squad=formation(),dmg=(9+player.weapon*5+player.drone*3)*player.power*(1+Math.min(combo,20)*.016);
   for(let i=0;i<count;i++){
    const f=squad[Math.min(squad.length-1,Math.floor((i+.5)*squad.length/count))];
-   bullets.push({x:f.x,y:1.2,z:f.z-1.02,vz:-43,damage:dmg,life:1.25,color:player.overdrive>0||i%3===0?'gold':'cyan'});
+   bullets.push({x:f.x,y:1.2,z:f.z-1.02,vz:-43,damage:dmg,life:1.25,color:player.overdrive>0||i%3===0?'gold':'cyan',pierceLeft:player.pierce||0});
   }
  }
  for(const b of bullets){
@@ -1407,8 +1412,7 @@ function update(dt){
   }
   if(hit){
    if(hit.streamId){
-    // One visible shot sweeps across up to four neighbors in the same front
-    // row, rather than requiring a separate bullet for every narrow hitbox.
+    // One visible shot sweeps across nearby soldiers in the same front row.
     const sweep=fever?1.28:1.12;
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<sweep);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
@@ -1421,7 +1425,13 @@ function update(dt){
     damage(hit,b.damage,'rifle');
     burst(b.x,hit.kind==='boss'?3.5:1.4,hit.z,b.color==='gold'?C.spark:C.cyan,4);
    }
-   b.life=0;
+   if(hit.kind==='mob'&&b.pierceLeft>1){
+    b.pierceLeft--;
+    b.z=hit.z-.72;
+    pulse(hit.x,1.15,hit.z,'#8dfff0',.18);
+   }else{
+    b.life=0;
+   }
   }
  }
  bullets=bullets.filter(b=>b.life>0&&b.z>-69).slice(-160); supportFire(dt);if(mode==='playing')updateEnemyShots(dt);
@@ -1834,7 +1844,7 @@ function updateHUD(){
  $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%';
  $('boss-hud').style.display=boss&&!boss.used?'block':'none';
  $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
- $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
+ $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+(player.pierce?'➤×3　':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
  const rule=stageModifier();$('stage-rule').textContent=fever?'🔥':rule.name.split(' ')[0];$('stage-rule').title=fever?'FEVER · '+rule.name:rule.name+' · '+rule.info;
  const thresholds=fieldThresholdsForStage(),prev=fieldPicks>0?thresholds[fieldPicks-1]:0,next=thresholds[fieldPicks];
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
