@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v33</title>
+<title>GATE BLASTER · WEBGL v34</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -716,17 +716,11 @@ function cue(freq=640,duration=.08,type='triangle',volume=.035){
  }catch(e){}
 }
 function flash(col='hit'){
- flashTime=col==='doom'?.42:.17;
- if(col==='doom'){
-  impactFlash.style.background='transparent';
-  impactFlash.style.boxShadow='inset 0 0 0 12px #ff304fcc, inset 0 0 48px 12px #ff173f99';
- }else if(col==='hurt'){
-  impactFlash.style.background='transparent';
-  impactFlash.style.boxShadow='inset 0 0 0 6px #ff4050aa, inset 0 0 28px 6px #ff203e77';
- }else{
-  impactFlash.style.background='radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)';
-  impactFlash.style.boxShadow='none';
- }
+ flashTime=.17;
+ impactFlash.style.boxShadow='none';
+ impactFlash.style.background=col==='hurt'
+  ?'linear-gradient(#ff405022,#ff203e55)'
+  :'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)';
 }
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
 
@@ -794,7 +788,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v33 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v34 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -1303,26 +1297,17 @@ function update(dt){
    announce('⚠ +ENEMY',1.0);
   }
   if(!rushStarted&&boss.z>=player.z-2.06){
-   // Once the boss reaches the squad, retreat is effectively over. Its
-   // point-blank shockwave covers the whole road and removes half the squad.
+   // Once the boss reaches the squad, use the familiar red attack marker,
+   // stretched across the entire road. When it resolves, half the squad falls.
    boss.arrivalClock=(boss.arrivalClock??.32)-dt;
-   if(boss.arrivalClock<=0){
-    bossHits++;
-    const loss=Math.min(Math.floor(player.team),Math.max(1,Math.ceil(player.team*.5)));
-    player.team=Math.max(0,player.team-loss);
-    announce('☠ FULL RANGE',.92);
-    text('☠ -'+loss+'  (-50%)',player.x,2.35,player.z,'#fff0a3',1.25);
-    for(const x of [-3,-1.5,0,1.5,3]){
-     pulse(x,.9,player.z-1.1,'#ff4f73',.76);
-     burst(x,.72,player.z-1.1,C.redLight,11);
-    }
-    pulse(boss.x,3.0,boss.z,'#fff0a0',.92);
-    burst(boss.x,2.2,boss.z,C.gold,30);
-    flash('doom');
-    cue(68,.48,'sawtooth',.075);
-    cue(42,.62,'square',.038);
-    boss.arrivalClock=1.08;
-    if(player.team<1)lose();
+   if(boss.arrivalClock<=0&&!warning&&!bossSiege){
+    warning={
+     x:0,time:.72,boss:true,width:3.55,pattern:'doom',
+     owner:boss.rushPart||0,fullRange:true
+    };
+    announce('☠ FULL RANGE',.72);
+    cue(118,.24,'sawtooth',.045);
+    boss.arrivalClock=1.52;
    }
   }
  }
@@ -1339,7 +1324,19 @@ function update(dt){
  }
  if(mode==='playing'&&!rushStarted)updateBossSiege(dt);
  if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
-  if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
+  if(warning.fullRange){
+   bossHits++;
+   const loss=Math.min(Math.floor(player.team),Math.max(1,Math.ceil(player.team*.5)));
+   player.team=Math.max(0,player.team-loss);
+   text('☠ -'+loss+'  (-50%)',player.x,2.35,player.z,'#fff0a3',1.25);
+   for(const x of [-3,-1.5,0,1.5,3]){
+    pulse(x,.9,player.z-1.1,'#ff4f73',.62);
+    burst(x,.72,player.z-1.1,C.redLight,9);
+   }
+   burst(boss.x,2.2,boss.z,C.gold,24);
+   flash('hurt');cue(68,.48,'sawtooth',.075);cue(42,.62,'square',.038);
+   if(player.team<1)lose();
+  }else if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
    bossHits++;const bossMult=warning.pattern==='crusher'?1.26:warning.pattern==='beetle'?.86:1;const loss=Math.min(Math.floor(player.team),Math.max(6,Math.ceil(player.team*(.36+boss.phase*.05)*(1-player.armor)*bossMult)));
    player.team=Math.max(0,player.team-loss);
    text('-'+loss,player.x,2.1,player.z,'#ff879b',1.2);
