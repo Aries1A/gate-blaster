@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v28</title>
+<title>GATE BLASTER · WEBGL v29</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -223,7 +223,7 @@ h1 em{color:#ffd96f}
   </div>
   <div id="progress"><div id="progress-fill"></div></div>
   <div id="field-xp" role="progressbar" aria-label="撃破エネルギー" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><div id="field-xp-fill"></div></div>
-  <div id="field-xp-pips" aria-label="獲得したフィールド強化"><i></i><i></i><i></i></div>
+  <div id="field-xp-pips" aria-label="獲得したフィールド強化"><i></i><i></i><i></i><i></i><i></i></div>
   <div id="stage-rule" title="ステージルール">⚔</div>
   <div id="boss-hud"><div class="title"><span id="boss-name">BOSS</span><span id="phase-val">I</span></div><div id="boss-fill-bg"><div id="boss-fill"></div></div></div>
   <div id="combo-hud"><b id="combo-val">0×</b></div>
@@ -533,7 +533,9 @@ function closeSoundSettings(){
 }
 
 let bullets=[],enemyShots=[],streams=[],streamGroups={},streamSerial=0,lastStreamHit=-100,runBuild=null,bossHits=0,bossSiege=null,fever=false,fieldCharge=0,fieldPicks=0,fieldChoicePending=false,rushIndex=0,rushStarted=false,rushDelay=0,rushBosses=[],bossHazards=[];
-const fieldThresholds=[4,10,18];
+function fieldThresholdsForStage(idx=stage){
+ return idx===3?[4,10,18,30,44]:[4,10,18];
+}
 
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
 function feverStage(index=stage){return index===3;}
@@ -581,7 +583,8 @@ function fieldOptionPool(){
  return [random(offense),random(defense),random(support.length?support:offense)];
 }
 function openFieldChoice(){
- if(mode!=='playing'||fieldPicks>=fieldThresholds.length)return;
+ const thresholds=fieldThresholdsForStage();
+ if(mode!=='playing'||fieldPicks>=thresholds.length)return;
  fieldChoicePending=false;mode='field-upgrade';const choices=fieldOptionPool();
  show('<div class="eyebrow">⚡ READY</div><h1>BOOST <em>UP!</em></h1><div class="upgrades">'+choices.map(o=>'<button class="upgrade" data-field="'+o.id+'"><span class="emoji">'+o.icon+'</span><span><b>'+o.title+'</b><small>'+o.desc+'</small></span></button>').join('')+'</div>');
  panel.querySelectorAll('[data-field]').forEach(btn=>btn.onclick=()=>{
@@ -600,9 +603,10 @@ function openFieldChoice(){
  });
 }
 function earnEnergy(amount=1){
- if(fieldPicks>=fieldThresholds.length)return;
+ const thresholds=fieldThresholdsForStage();
+ if(fieldPicks>=thresholds.length)return;
  fieldCharge+=amount;
- if(fieldCharge>=fieldThresholds[fieldPicks])fieldChoicePending=true;
+ if(fieldCharge>=thresholds[fieldPicks])fieldChoicePending=true;
 }
 
 function crowdHealth(baseHp,n){return Math.ceil(Math.max(baseHp*1.18,n*(6.5+stage*1.35)))}
@@ -739,18 +743,26 @@ function reset(){
  choice('route5',25.0,2.25,-2.20,32+stage*3,crateHp+35,'weapon'); mob(25.8,1.7,mobHp+73,22,chooseMobType(13));
  const sideLanes=[-2.4,0,2.4,-1.15,1.15];
  for(let i=0;i<6;i++)mob(6.1+i*3.55,sideLanes[(i*3+stage)%sideLanes.length],mobHp+15+i*5,15+(i%4)*3,chooseMobType(20+i));
+ // v29 baseline: the former stage-3 wall is now the default crowd
+ // density for every stage. These dense waves remain individually fragile.
+ for(let i=0;i<32;i++){
+  spawn('stream',2.55+i*.72,{
+   x:[-1.65,1.55,0,1.8,-1.75,.8,-.8][i%7],hp:mobHp+7+i*2,
+   n:20+(i%5)*4,mobType:chooseMobType(32+i),denseBonus:true
+  });
+ }
  if(fever){
-  const prizes=['weapon','team','drone','weapon','heli','team','turret','weapon'];
-  const lanes=[-2.25,2.25,2.25,-2.25,-2.25,2.25,-2.25,2.25];
-  for(let i=0;i<8;i++){
-   spawn('crate',2.9+i*2.85,{x:lanes[i],hp:Math.ceil(crateHp*.83)+i*3,reward:prizes[i],feverBonus:true});
+  // Stage 3 goes beyond the new default: twenty more overlapping streams,
+  // twelve loot cases and two additional mid-stage BOOST UP opportunities.
+  const prizes=['weapon','team','drone','weapon','team','heli','weapon','team','turret','weapon','drone','team'];
+  const lanes=[-2.25,2.25,2.25,-2.25,-2.25,2.25,-2.25,2.25,2.25,-2.25,-2.25,2.25];
+  for(let i=0;i<12;i++){
+   spawn('crate',3.0+i*2.02,{x:lanes[i],hp:Math.ceil(crateHp*.78)+i*2,reward:prizes[i],feverBonus:true});
   }
-  // More densely staggered rows, including a late surge. Loot still rewards
-  // clearing the lane; FEVER troops are individually fragile, not HP sponges.
-  for(let i=0;i<32;i++){
-   spawn('stream',2.55+i*.72,{
-    x:[-1.65,1.55,0,1.8,-1.75,.8,-.8][i%7],hp:mobHp+7+i*2,
-    n:20+(i%5)*4,mobType:chooseMobType(32+i),feverBonus:true
+  for(let i=0;i<20;i++){
+   spawn('stream',2.92+i*1.08,{
+    x:[1.15,-1.15,0,1.9,-1.9,.55,-.55][i%7],hp:mobHp+4+i*2,
+    n:18+(i%5)*4,mobType:chooseMobType(80+i),denseBonus:true,feverExtra:true
    });
   }
  }
@@ -771,7 +783,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v28 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v29 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -857,7 +869,7 @@ function finalBuildChoice(){
    else player.power*=1.35;
    player.drone=Math.min(4,player.drone+1);
   }
-  fieldPicks=fieldThresholds.length;fieldChoicePending=false;
+  fieldPicks=fieldThresholdsForStage().length;fieldChoicePending=false;
   mode='playing';overlay.classList.add('off');rushDelay=1.4;
   cue(1080,.26,'triangle',.065);announce('👑 BOSS RUSH',1.4);
  });
@@ -884,12 +896,13 @@ function doSpawn(e){
   // Dense troop bands: rows span the road; every soldier remains individually hittable.
   // Preserve original wave HP and one kill-energy credit per wave.
   const type=e.mobType||chooseMobType(Math.floor(e.when*10)),a=mobArchetype(type),mod=stageModifier();
-  const total=Math.min(e.feverBonus?110:55,Math.max(e.feverBonus?72:30,Math.ceil(e.n*a.n*(e.feverBonus?2.05:1.38))));
+  const dense=!!(e.denseBonus||e.feverBonus);
+  const total=Math.min(dense?110:55,Math.max(dense?72:30,Math.ceil(e.n*a.n*(dense?2.05:1.38))));
   const original=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),Math.ceil(e.n*a.n))*mod.hp*1.17);
   const id=++streamSerial;
-  streamGroups[id]={total,defeated:0,credited:false,contactLosses:0};
-  const columns=Math.min(12,Math.max(e.feverBonus?12:9,Math.ceil(Math.sqrt(total*3))));
-  streams.push({id,x:e.x,type,total,columns,hp:Math.max(e.feverBonus?4:6,Math.ceil(original/total)),speed:(e.feverBonus?5.65:7.0)+a.speed+(e.feverBonus?mod.speed*.35:mod.speed),interval:e.feverBonus?.064:type==='runner'?.083:.105,clock:0,emitted:0});
+  streamGroups[id]={total,defeated:0,credited:false,contactLosses:0,dense};
+  const columns=Math.min(12,Math.max(dense?12:9,Math.ceil(Math.sqrt(total*3))));
+  streams.push({id,x:e.x,type,total,columns,dense,hp:Math.max(dense?4:6,Math.ceil(original/total)),speed:(dense?5.65:7.0)+a.speed+(dense?mod.speed*.35:mod.speed),interval:dense?.064:type==='runner'?.083:.105,clock:0,emitted:0});
  }else if(e.kind==='mob'){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.17);
@@ -1190,7 +1203,7 @@ function update(dt){
    for(let c=0;c<count;c++){
     const i=line.emitted++;
     const x=clamp(center+(c-(count-1)/2)*.55+(row%2?.12:0),-3.2,3.2);
-    entities.push({kind:'mob',streamId:line.id,mobType:line.type,x,z:-29-(c%2)*.07,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%line.total===0,hit:0,seed:rnd(0,100),used:false});
+    entities.push({kind:'mob',streamId:line.id,dense:line.dense,mobType:line.type,x,z:-29-(c%2)*.07,y:0,hp:line.hp,maxHp:line.hp,n:1,speed:line.speed,fireClock:1.6+rnd(0,.8),rangedEnabled:i%line.total===0,hit:0,seed:rnd(0,100),used:false});
    }
    line.clock+=line.interval;
   }
@@ -1219,7 +1232,7 @@ function update(dt){
      // A wide visual row consists of many separate actors. Treat contact as one
      // strike, not a loss for every overlapping soldier in the same row.
      const wave=streamGroups[e.streamId];
-     if(wave&&wave.contactLosses<(fever?1:3)&&t-lastStreamHit>=.24&&player.team>=1){
+     if(wave&&wave.contactLosses<((fever||wave.dense)?1:3)&&t-lastStreamHit>=.24&&player.team>=1){
       const touching=formation().find(f=>Math.abs(f.x-e.x)<.34&&Math.abs(f.z-e.z)<.43);
       if(touching){
        const lost=1;
@@ -1347,7 +1360,7 @@ function update(dt){
     const sweep=fever?1.28:1.12;
     const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<sweep);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
-    const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,fever?6:4);
+    const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,(fever||streamGroups[hit.streamId]?.dense)?6:4);
     for(const [i,e] of targets.entries()){
      damage(e,b.damage*(i===0?1:.85),'rifle');
      if(e.used)burst(e.x,1.15,e.z,b.color==='gold'?C.spark:C.cyan,i===0?4:2);
@@ -1501,12 +1514,12 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1,hit=false){
 function drawMob(e){
  if(e.streamId){
   const col=mobArchetype(e.mobType);
-  if(e.z<(fever?-5.5:-8)){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
+  if(e.z<((fever||e.dense)?-5.5:-8)){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
   else soldier(e.x,e.z,false,e.seed,.33,e.mobType,1,e.hit>0);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<(fever?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
+ for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<((fever||e.dense)?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function gatePanelZ(e,index){
@@ -1772,13 +1785,16 @@ function updateHUD(){
  $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
  $('support-hud').innerHTML=(player.overdrive>0?'🌟'+Math.ceil(player.overdrive)+'s<br>':'')+'💪'+commanderLevel()+'　✦'+player.drone+' 🚁'+player.heli+' 🔧'+player.turret;
  const rule=stageModifier();$('stage-rule').textContent=fever?'🔥':rule.name.split(' ')[0];$('stage-rule').title=fever?'FEVER · '+rule.name:rule.name+' · '+rule.info;
- const prev=fieldPicks>0?fieldThresholds[fieldPicks-1]:0,next=fieldThresholds[fieldPicks];
+ const thresholds=fieldThresholdsForStage(),prev=fieldPicks>0?thresholds[fieldPicks-1]:0,next=thresholds[fieldPicks];
  $('field-xp-fill').style.width=(next===undefined?100:clamp((fieldCharge-prev)/(next-prev),0,1)*100)+'%';
  $('field-xp').setAttribute('aria-valuemin',String(prev));
  $('field-xp').setAttribute('aria-valuemax',String(next===undefined?prev:next));
  $('field-xp').setAttribute('aria-valuenow',String(Math.min(fieldCharge,next===undefined?fieldCharge:next)));
  const pips=$('field-xp-pips').children;
- for(let i=0;i<pips.length;i++)pips[i].classList.toggle('on',i<fieldPicks);
+ for(let i=0;i<pips.length;i++){
+  pips[i].style.display=i<thresholds.length?'block':'none';
+  pips[i].classList.toggle('on',i<fieldPicks);
+ }
  impactFlash.style.opacity=flashTime>0?'1':'0';
  if(boss&&!boss.used){
   const alive=activeBosses(),aggregate=rushStarted&&alive.length;
