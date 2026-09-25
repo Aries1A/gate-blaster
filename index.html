@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v39</title>
+<title>GATE BLASTER · WEBGL v40</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -791,7 +791,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v39 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v40 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -902,7 +902,7 @@ function campaignVictory(){
   show('<div class="victory">'+bits+'</div><div class="eyebrow">EMERGENCY CLEARED</div>'+stagePath(5,0)+'<h1>🏆 <em>TRUE CLEAR!</em></h1><div class="final-banner">9-BOSS RUSH COMPLETE</div>'+campaignStats()+'<button class="cta" id="top">⌂ TOP</button>');
   $('top').onclick=menu;
  }else{
-  show('<div class="victory">'+bits+'</div><div class="eyebrow">5 / 5 STAGES</div>'+stagePath(5,0)+'<h1>🏆 <em>ALL CLEAR!</em></h1><div class="final-banner">ALL STAGES COMPLETE</div>'+campaignStats()+'<button class="cta" id="top">⌂ トップ画面に戻る</button>');
+  show('<div class="victory">'+bits+'</div><div class="eyebrow">5 / 5 STAGES</div>'+stagePath(5,0)+'<h1>🏆 <em>ALL CLEAR!</em></h1><div class="final-banner">ALL STAGES COMPLETE</div>'+campaignStats()+'<button class="cta" id="top">⌂ ホーム画面へ？</button>');
   $('top').onclick=startEmergencyRush;
  }
 }
