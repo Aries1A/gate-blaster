@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v38</title>
+<title>GATE BLASTER · WEBGL v39</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -791,7 +791,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v38 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v39 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -1357,7 +1357,7 @@ function update(dt){
  if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
   if(warning.fullRange){
    bossHits++;
-   const loss=Math.min(Math.floor(player.team),Math.max(1,Math.ceil(player.team*.5)));
+   const loss=Math.min(Math.floor(player.team),Math.max(1,Math.ceil(player.team*.5*(1-player.armor))));
    player.team=Math.max(0,player.team-loss);playerDamageSerial++;
    text('☠ -'+loss+'  (-50%)',player.x,2.35,player.z,'#fff0a3',1.25);
    for(const x of [-3,-1.5,0,1.5,3]){
