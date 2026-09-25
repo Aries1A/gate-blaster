@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v36</title>
+<title>GATE BLASTER · WEBGL v37</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -542,12 +542,12 @@ function fieldThresholdsForStage(idx=stage){
 function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0}}
 function feverStage(index=stage){return index===3;}
 function stageModifier(idx=stage){
- if(idx===5)return {id:'final',name:'👑 FINAL',info:'ラストステージ',hp:1.18,speed:.25,shot:.90,boss:1.10,energy:1};
+ if(idx===5)return {id:'final',name:'👑 FINAL',info:'ラストステージ',hp:1.10,speed:.20,shot:.98,boss:1.05,energy:1};
  return [
   {id:'standard',name:'⚔ STANDARD',info:'敵を倒してエネルギーを集めろ',hp:.95,speed:0,shot:1,boss:.96,energy:1},
   {id:'rush',name:'💨 SPEED RUSH',info:'敵の移動速度アップ',hp:.93,speed:.95,shot:.98,boss:.95,energy:1},
-  {id:'armor',name:'🛡 ARMORED ZONE',info:'敵が硬い・撃破エネルギー+1',hp:1.32,speed:0,shot:1,boss:1.10,energy:2},
-  {id:'crossfire',name:'☄ CROSS FIRE',info:'敵の遠距離射撃が激化',hp:1.05,speed:.15,shot:.70,boss:1.06,energy:1}
+  {id:'armor',name:'🛡 ARMORED ZONE',info:'敵が硬い・撃破エネルギー+1',hp:1.23,speed:0,shot:1.06,boss:1.05,energy:2},
+  {id:'crossfire',name:'☄ CROSS FIRE',info:'敵の遠距離射撃が激化',hp:.98,speed:.12,shot:.77,boss:1.01,energy:1}
  ][(idx-1)%4];
 }
 function stagePath(done=0,active=Math.min(5,done+1)){
@@ -791,7 +791,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v36 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v37 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
