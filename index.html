@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v29</title>
+<title>GATE BLASTER · WEBGL v30</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -218,7 +218,6 @@ h1 em{color:#ffd96f}
    <div id="stage" class="pill" aria-label="ステージ"><div class="big" id="stage-val">01</div></div>
    <div class="pill" aria-label="人数"><span class="small" aria-hidden="true">👥</span><div class="big cyan" id="team-val">13</div></div>
    <div class="pill" aria-label="武器レベル"><span class="small" aria-hidden="true">🔫</span><div class="big gold" id="weapon-val">1</div></div>
-   <div class="pill" aria-label="HP"><span class="small" aria-hidden="true">❤️</span><div class="big" id="hp-val">100</div></div>
    <button id="audio" aria-label="音楽と効果音をオフにする">♫</button><button id="pause" aria-label="一時停止">Ⅱ</button>
   </div>
   <div id="progress"><div id="progress-fill"></div></div>
@@ -537,7 +536,7 @@ function fieldThresholdsForStage(idx=stage){
  return idx===3?[4,10,18,30,44]:[4,10,18];
 }
 
-function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,maxHp:100,power:1,rate:1,armor:0}}
+function makeBuild(){return {team:13,weapon:1,drone:0,heli:0,turret:0,power:1,rate:1,armor:0}}
 function feverStage(index=stage){return index===3;}
 function stageModifier(idx=stage){
  if(idx===5)return {id:'final',name:'👑 FINAL',info:'ラストステージ',hp:1.18,speed:.25,shot:.90,boss:1.10,energy:1};
@@ -571,7 +570,7 @@ function fieldOptionPool(){
  ];
  const defense=[
   {id:'team',icon:'👥',title:'増援',desc:'人数 +12'},
-  {id:'repair',icon:'❤️',title:'回復',desc:'HP +35'},
+  {id:'regroup',icon:'🪖',title:'再編成',desc:'人数 +8 · 防御 +5%'},
   {id:'armor',icon:'🛡',title:'防御',desc:'ボス被害 -15%'}
  ];
  const support=[
@@ -594,7 +593,7 @@ function openFieldChoice(){
   if(id==='power')player.power*=1.28;
   if(id==='overdrive')player.overdrive=Math.max(player.overdrive||0,9);
   if(id==='team')player.team+=12;
-  if(id==='repair')player.hp=Math.min(player.maxHp,player.hp+35);
+  if(id==='regroup'){player.team+=8;player.armor=Math.min(.7,player.armor+.05)}
   if(id==='armor')player.armor=Math.min(.7,player.armor+.15);
   if(id==='drone')player.drone=Math.min(4,player.drone+1);
   if(id==='heli')player.heli=Math.min(2,player.heli+1);
@@ -727,7 +726,7 @@ function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 function reset(){
  t=0;sfxTimes={};entities=[];sparks=[];texts=[];bullets=[];enemyShots=[];streams=[];streamGroups={};streamSerial=0;lastStreamHit=-100;waveEvents=[];bossSiege=null;rushIndex=0;rushStarted=false;rushDelay=0;rushBosses=[];bossHazards=[];fever=feverStage();fieldCharge=0;fieldPicks=0;fieldChoicePending=false;boss=null;warning=null;shotClock=0;eventIndex=0;combo=0;comboTime=0;maxCombo=0;kills=0;bossHits=0;helicopterClock=0;turretClock=0;flashTime=0;introTime=0;muzzleTime=0;rings=[];bossIntro.classList.remove('show');
  $('game').dataset.stage=String(stage);
- const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,hp:b.maxHp,maxHp:b.maxHp,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
+ const b=runBuild||makeBuild();player={x:0,tx:0,z:5.3,team:b.team,weapon:b.weapon,drone:b.drone,heli:b.heli,turret:b.turret,power:b.power,rate:b.rate,armor:b.armor,overdrive:0};squadBuffer=player.team;
  const mobHp=32+stage*14,crateHp=32+stage*9;
  const choice=(id,when,gateX,crateX,gain,hp,reward)=>{spawn('gate',when,{x:gateX,gain,pair:id});spawn('crate',when+.38,{x:crateX,hp,reward,pair:id})};
  const mob=(when,x,hp,n,type)=>spawn('stream',when,{x,hp,n,mobType:type});
@@ -783,7 +782,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v29 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v30 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -795,7 +794,7 @@ function selectPersistentUpgrade(id){
  if(id==='team')runBuild.team+=8;
  if(id==='weapon')runBuild.weapon=Math.min(9,runBuild.weapon+1);
  if(id==='rate')runBuild.rate*=1.2;
- if(id==='hp')runBuild.maxHp+=35;
+ if(id==='reserve')runBuild.team+=14;
  if(id==='armor')runBuild.armor=Math.min(.6,runBuild.armor+.15);
  if(id==='drone')runBuild.drone=Math.min(4,runBuild.drone+1);
  if(id==='heli')runBuild.heli=Math.min(2,runBuild.heli+1);
@@ -813,7 +812,7 @@ function stageClear(){
   {id:'rate',icon:'⚡',title:'連射 +20%',desc:'連射 +20%'}];
  const survival=[
   {id:'team',icon:'👥',title:'人数 +8',desc:'次から +8'},
-  {id:'hp',icon:'❤️',title:'HP +35',desc:'HP上限 +35'},
+  {id:'reserve',icon:'🪖',title:'大増援 +14',desc:'次から人数 +14'},
   {id:'armor',icon:'🛡️',title:'防御 +15%',desc:'ボス被害 -15%'}];
  const support=[
   {id:'drone',icon:'✦',title:'随伴ドローン +1',desc:'主武器のダメージ +3'},
@@ -852,7 +851,7 @@ function finalBuildChoice(){
  cue(960,.22,'triangle',.06);
  const options=[
   {id:'burst',icon:'💥',title:'決戦火力',desc:'火力 +45% · 連射 +8%'},
-  {id:'supply',icon:'🛡️',title:'補給',desc:'人数 +14 · HP +40'},
+  {id:'supply',icon:'🛡️',title:'決戦補給',desc:'人数 +26 · 防御 +9%'},
   {id:'support',icon:'🚁',title:'支援強化',desc:'自動攻撃 + 随伴ドローン'}
  ];
  show('<div class="eyebrow">👑 FINAL BUILD</div>'+stagePath(4,5)+'<h1>BOSS <em>RUSH!</em></h1><div class="final-banner">3 BOSSES AT ONCE · 1 BUILD</div>'+
@@ -861,7 +860,7 @@ function finalBuildChoice(){
   if(mode!=='final-upgrade')return;
   const id=btn.dataset.final;
   if(id==='burst'){player.power*=1.45;player.rate*=1.08}
-  if(id==='supply'){player.team+=14;player.maxHp+=40;player.hp=Math.min(player.maxHp,player.hp+40);player.armor=Math.min(.7,player.armor+.09)}
+  if(id==='supply'){player.team+=26;player.armor=Math.min(.7,player.armor+.09)}
   if(id==='support'){
    if(player.heli<2)player.heli++;
    else if(player.turret<2)player.turret++;
@@ -991,7 +990,7 @@ function damage(e,value,source='rifle',showHit=true){
     if(remaining){
      announce('👑 '+remaining+' REMAIN',1.15);
      cue(920,.26,'triangle',.065);
-     player.hp=Math.min(player.maxHp,player.hp+7);player.team+=2;
+     player.team+=4;
     }else campaignVictory();
    }else win();
   }
@@ -1060,10 +1059,9 @@ function updateEnemyShots(dt){
    const lost=Math.min(Math.floor(player.team),Math.min(3,contact));
    if(lost>0){
     player.team=Math.max(0,player.team-lost);
-    player.hp=Math.max(0,player.hp-4-Math.ceil(lost*1.1));
     text('⚡ -'+lost,p.x,1.55,player.z,'#ff9fe5',.7);
     burst(p.x,1.1,player.z,C.magenta,12);flash('hurt');cue(145,.13,'sawtooth',.025);
-    if(player.team<1||player.hp<=0)lose();
+    if(player.team<1)lose();
    }
    p.life=0;
   }
@@ -1097,10 +1095,9 @@ function updateBossSiege(dt){
   const mult=mark.pattern==='crusher'?1.2:mark.pattern==='beetle'?.94:1;
   const lost=Math.min(Math.floor(player.team),Math.max(2,Math.ceil(covered*(.68+boss.phase*.07)*(1-player.armor)*mult)));
   player.team=Math.max(0,player.team-lost);
-  player.hp=Math.max(0,player.hp-(12+boss.phase*2+stage*.45)*mult);
   text('☄ -'+lost,mark.x,2.0,player.z,'#ff9ad7',.95);
   burst(mark.x,1.0,player.z,C.magenta,28);flash('hurt');cue(110,.24,'sawtooth',.05);
-  if(player.hp<=0||player.team<1)lose();
+  if(player.team<1)lose();
  }else{
   text('✓',player.x,2.0,player.z,'#8dfff0',.9);
   burst(mark.x,1.0,player.z,C.orange,13);cue(830,.09);bossCounter(rushBosses.find(b=>b.rushPart===mark.owner)||boss);
@@ -1114,11 +1111,10 @@ function bossSpecialHit(x,width,kind){
  const cap=kind==='laser'?5:kind==='crusher'?3:2;
  const lost=Math.min(Math.floor(player.team),Math.min(cap,Math.max(1,Math.ceil(contact*.20*(1-player.armor)))));
  player.team=Math.max(0,player.team-lost);
- player.hp=Math.max(0,player.hp-(kind==='laser'?7:kind==='crusher'?6:4)*(1-player.armor*.5));
  text('-'+lost,x,1.9,player.z,'#ff9fca',.71);
  burst(x,1.03,player.z,kind==='laser'?C.magenta:C.rocket,15);
  flash('hurt');cue(140,.14,'sawtooth',.029);
- if(player.hp<=0||player.team<1)lose();
+ if(player.team<1)lose();
 }
 function castBossSpecial(b){
  if(!b||b.used||mode!=='playing')return;
@@ -1238,11 +1234,10 @@ function update(dt){
        const lost=1;
        wave.contactLosses+=lost;lastStreamHit=t;
        player.team=Math.max(0,player.team-lost);
-       player.hp=Math.max(0,player.hp-1);
        burst(touching.x,.72,touching.z,C.redLight,4);
        text('-1',touching.x,1.65,touching.z,'#ff9aa8',.6);
        flash('hurt');cue(155,.09,'sawtooth',.024);
-       if(player.team<1||player.hp<=0)lose();
+       if(player.team<1)lose();
       }
      }
     }else{
@@ -1250,7 +1245,7 @@ function update(dt){
      const friends=formation(),foes=enemyPositions(e);let losses=0;
      for(const f of friends){if(foes.some(enemy=>Math.abs(f.x-enemy.x)<.34&&Math.abs(f.z-enemy.z)<.43)){losses++;if(losses<=10)burst(f.x,.72,f.z,C.redLight,3)}}
      const lost=Math.min(Math.floor(player.team),losses);
-     if(lost>0){player.team=Math.max(0,player.team-lost);player.hp=Math.max(0,player.hp-Math.max(2,Math.ceil(lost*.55)));text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035);if(player.team<1||player.hp<=0)lose()}
+     if(lost>0){player.team=Math.max(0,player.team-lost);text('-'+lost,player.x,1.65,player.z,'#ff9aa8');flash('hurt');cue(155,.13,'sawtooth',.035);if(player.team<1)lose()}
     }
     e.used=true;
    }else if(e.z>player.z+2)e.used=true;
@@ -1317,10 +1312,10 @@ function update(dt){
  if(warning&&mode==='playing'){warning.time-=dt;if(warning.time<=0){
   if(Math.abs(player.x-warning.x)<(warning.width||2.25)){
    bossHits++;const bossMult=warning.pattern==='crusher'?1.26:warning.pattern==='beetle'?.86:1;const loss=Math.min(Math.floor(player.team),Math.max(6,Math.ceil(player.team*(.36+boss.phase*.05)*(1-player.armor)*bossMult)));
-   player.team=Math.max(0,player.team-loss);player.hp-=(18+boss.phase*3+stage*.45)*bossMult;
+   player.team=Math.max(0,player.team-loss);
    text('-'+loss,player.x,2.1,player.z,'#ff879b',1.2);
    burst(player.x,1.1,player.z,C.redLight,38);flash('hurt');cue(105,.34,'sawtooth',.055);
-   if(player.hp<=0||player.team<1){lose();}
+   if(player.team<1){lose();}
   }else{text('✓',player.x,2.0,player.z,'#8dfff0');cue(840,.11);bossCounter(rushBosses.find(b=>b.rushPart===warning.owner)||boss)}
   warning=null;
  }}
@@ -1779,7 +1774,6 @@ function updateHUD(){
  if(!player)return;
  $('team-val').textContent=String(Math.max(0,Math.floor(player.team)));
  $('weapon-val').textContent=String(player.weapon);
- $('hp-val').textContent=String(Math.max(0,Math.ceil(player.hp)));
  $('progress-fill').style.width=(Math.min(1,t/29)*100)+'%';
  $('boss-hud').style.display=boss&&!boss.used?'block':'none';
  $('combo-val').textContent=combo+'×';$('combo-hud').classList.toggle('show',combo>=2&&comboTime>0);
@@ -1852,7 +1846,7 @@ syncSoundControls();
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')togglePause()});
 $('audio').classList.add('on');
 // backdrop actors on menu, real gameplay starts only from Start
-player={x:0,tx:0,z:5.3,team:26,weapon:3,drone:1,heli:1,turret:1,hp:100,maxHp:100,power:1,rate:1,armor:0};
+player={x:0,tx:0,z:5.3,team:26,weapon:3,drone:1,heli:1,turret:1,power:1,rate:1,armor:0};
 entities=[{kind:'gate',x:2.2,z:-19,y:0,length:8.5,gain:28,taken:0,used:false},{kind:'crate',x:-2.2,z:-13,hp:82,maxHp:82,reward:'heli',hit:0,used:false},{kind:'mob',mobType:'runner',x:-1.0,z:-23,hp:120,maxHp:120,n:18,seed:2,used:false,hit:0,scale:.29},{kind:'mob',mobType:'brute',x:1.4,z:-28,hp:160,maxHp:160,n:12,seed:5,used:false,hit:0,scale:.42}];
 boss={kind:'boss',bossType:'beetle',name:'STORM BEETLE',x:0,z:-39,hp:4700,maxHp:4700,phase:1,hit:0,used:false,entered:false};
 menu();requestAnimationFrame(frame);
