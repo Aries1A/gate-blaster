@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>広告のアレ · WEBGL v44</title>
+<title>広告のアレ · WEBGL v45</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -797,7 +797,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v44 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v45 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -1625,16 +1625,22 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1,hit=false){
 }
 
 function drawMob(e){
- const lod=crowdedVisuals();
+ const lod=crowdedVisuals(),lodLimit=player.z-8;
  if(e.streamId){
   const col=mobArchetype(e.mobType);
   if(e.z<((fever||e.dense)?-5.5:-8)){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
-  else if(lod)crowdSoldier(e.x,e.z,false,e.mobType,e.hit>0);
+  else if(lod&&e.z<lodLimit)crowdSoldier(e.x,e.z,false,e.mobType,e.hit>0);
   else soldier(e.x,e.z,false,e.seed,.33,e.mobType,1,e.hit>0);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<((fever||e.dense)?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else if(lod)crowdSoldier(x,z,false,e.mobType,e.hit>0); else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
+ for(let i=0;i<visual;i++){
+  const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)),r=Math.floor(idx/cols),c=idx%cols;
+  const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42;
+  if(e.z<((fever||e.dense)?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)}
+  else if(lod&&z<lodLimit)crowdSoldier(x,z,false,e.mobType,e.hit>0);
+  else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);
+ }
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function gatePanelZ(e,index){
@@ -1803,17 +1809,18 @@ function crowdSoldier(x,z,playerSide,variant='grunt',hit=false){
  const typ=playerSide?null:mobArchetype(variant);
  const body=hit?C.armorHi:playerSide?C.blue:typ.body;
  const accent=playerSide?C.blueLight:typ.accent;
- sphere(x,.035,z,.72,.04,.57,C.shadow);
- soft(x,.79,z,.56,.98,.48,body);
- sphere(x,1.55,z-.04,.43,.43,.40,playerSide?C.skin:accent);
- soft(x,1.78,z+.03,.50,.20,.44,playerSide?C.helmet:body);
- box(x+.22,1.00,z-.48,.15,.15,.88,playerSide?C.gun:accent);
+ sphere(x,.025,z,.36,.025,.29,C.shadow);
+ soft(x,.43,z,.29,.50,.25,body);
+ sphere(x,.85,z-.02,.20,.20,.19,playerSide?C.skin:accent);
+ soft(x,.99,z+.01,.23,.11,.21,playerSide?C.helmet:body);
+ box(x+.11,.55,z-.27,.075,.075,.46,playerSide?C.gun:accent);
 }
 function squad(){
- const friends=formation(),lvl=commanderLevel(),lod=crowdedVisuals()||friends.length>56;
+ const friends=formation(),lvl=commanderLevel();
+ // The player's squad always keeps the full soldier model. LOD must never
+ // turn the foreground formation into a solid block.
  for(let i=0;i<friends.length;i++){
-  if(lod)crowdSoldier(friends[i].x,friends[i].z,true,'ally',false);
-  else soldier(friends[i].x,friends[i].z,true,i*.8,.33,'ally',lvl);
+  soldier(friends[i].x,friends[i].z,true,i*.8,.33,'ally',lvl);
  }
  soldier(player.x,player.z+.42,true,99,.40,'commander',lvl);
  for(let i=0;i<player.drone;i++){
