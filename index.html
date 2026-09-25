@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v30</title>
+<title>GATE BLASTER · WEBGL v31</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -715,7 +715,12 @@ function cue(freq=640,duration=.08,type='triangle',volume=.035){
   o.connect(a);a.connect(seBus);o.start(now);o.stop(now+duration);
  }catch(e){}
 }
-function flash(col='hit'){flashTime=.17;impactFlash.style.background=col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)'}
+function flash(col='hit'){
+ flashTime=col==='doom'?.42:.17;
+ impactFlash.style.background=col==='doom'
+  ?'radial-gradient(circle at 50% 55%,#ffffff 0 7%,#ffd36dcc 19%,#ff315faa 43%,#56001dbb 72%,transparent 100%)'
+  :col==='hurt'?'linear-gradient(#ff405022,#ff203e55)':'radial-gradient(circle at 50% 52%,#fff6b455,transparent 52%)';
+}
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
 
 try{best=clamp(Number(localStorage.getItem('gate-blaster-webgl-best'))||1,1,5)}catch(e){}
@@ -782,7 +787,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v30 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v31 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -911,7 +916,7 @@ function doSpawn(e){
  else if(e.kind==='boss'){
   const bp=bossByType(e.bossType),part=e.rushPart||0;
   const anchorX=part?[-2.45,0,2.45][part-1]:0;
-  const spawned={kind:'boss',rushPart:part,bossType:e.bossType||bp.id,name:bp.name,x:anchorX,anchorX,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,summon:bp.summon+(part?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,specialClock:part?2+part*.83:2.9,used:false};
+  const spawned={kind:'boss',rushPart:part,bossType:e.bossType||bp.id,name:bp.name,x:anchorX,anchorX,z:-32,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,arrivalClock:.32,summon:bp.summon+(part?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,specialClock:part?2+part*.83:2.9,used:false};
   if(part){rushBosses.push(spawned);if(!boss)boss=spawned}
   else boss=spawned;
   introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${part?'TRIPLE THREAT':boss.name}</b>`;
@@ -1285,15 +1290,26 @@ function update(dt){
    announce('⚠ +ENEMY',1.0);
   }
   if(!rushStarted&&boss.z>=player.z-2.06){
-   boss.attack-=dt;
-   if(boss.attack<=0&&!warning&&!bossSiege){
-    const id=boss.bossType,width=id==='crusher'?2.55:id==='beetle'?1.5:id==='hydra'?1.35:2.10;
-    const telegraph=id==='crusher'?1.18:id==='beetle'?.59:id==='hydra'?.77:.86;
-    boss.attackCount=(boss.attackCount||0)+1;
-    const aim=id==='hydra'?(boss.attackCount%2? -2.25:2.25):id==='beetle'?clamp(player.tx*.76+boss.x*.24,-2.8,2.8):boss.x;
-    warning={x:aim,time:telegraph,boss:true,width,pattern:id,owner:boss.rushPart||0};
-    boss.attack=Math.max(1.55,(id==='beetle'?2.7:id==='crusher'?3.7:3.2)-boss.phase*.28-stage*.05);
-    announce(id==='hydra'?'⚠ ↔':id==='beetle'?'⚠!':id==='crusher'?'⚠!':'⚠!',.7);cue(160,.18,'sawtooth',.04);
+   // Once the boss reaches the squad, retreat is effectively over. Its
+   // point-blank shockwave covers the whole road and removes half the squad.
+   boss.arrivalClock=(boss.arrivalClock??.32)-dt;
+   if(boss.arrivalClock<=0){
+    bossHits++;
+    const loss=Math.min(Math.floor(player.team),Math.max(1,Math.ceil(player.team*.5)));
+    player.team=Math.max(0,player.team-loss);
+    announce('☠ FULL RANGE',.92);
+    text('☠ -'+loss+'  (-50%)',player.x,2.35,player.z,'#fff0a3',1.25);
+    for(const x of [-3,-1.5,0,1.5,3]){
+     pulse(x,.9,player.z-1.1,'#ff4f73',.76);
+     burst(x,.72,player.z-1.1,C.redLight,11);
+    }
+    pulse(boss.x,3.0,boss.z,'#fff0a0',.92);
+    burst(boss.x,2.2,boss.z,C.gold,30);
+    flash('doom');
+    cue(68,.48,'sawtooth',.075);
+    cue(42,.62,'square',.038);
+    boss.arrivalClock=1.08;
+    if(player.team<1)lose();
    }
   }
  }
