@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v41</title>
+<title>GATE BLASTER · WEBGL v42</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -407,7 +407,7 @@ function createMesh(data){
  const ib=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,ib);gl.bufferData(gl.ARRAY_BUFFER,20*4*800,gl.DYNAMIC_DRAW);
  for(let i=0;i<5;i++){const loc=i+2;gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,4,gl.FLOAT,false,80,i*16);gl.vertexAttribDivisor(loc,1)}
  gl.bindVertexArray(null);
- return{vao,ib,indices:indices.length,instances:[],capacity:800};
+ return{vao,ib,indices:indices.length,instances:[],capacity:800,upload:new Float32Array(20*800)};
 }
 const meshes={box:createMesh(cubeMesh()),sphere:createMesh(sphereMesh()),cyl:createMesh(cylinderMesh()),soft:createMesh(roundedMesh()),glass:createMesh(cubeMesh())};
 function add(kind,x,y,z,sx,sy,sz,color,ry=0){
@@ -423,12 +423,13 @@ const glass=(x,y,z,sx,sy,sz,color)=>add('glass',x,y,z,sx,sy,sz,color);
 function drawInstances(mesh){
  const count=mesh.instances.length/20;if(!count)return;
  gl.bindVertexArray(mesh.vao);gl.bindBuffer(gl.ARRAY_BUFFER,mesh.ib);
- const data=new Float32Array(mesh.instances);
  if(count>mesh.capacity){
   mesh.capacity=2**Math.ceil(Math.log2(count));
+  mesh.upload=new Float32Array(mesh.capacity*20);
   gl.bufferData(gl.ARRAY_BUFFER,mesh.capacity*80,gl.DYNAMIC_DRAW);
  }
- gl.bufferSubData(gl.ARRAY_BUFFER,0,data);
+ mesh.upload.set(mesh.instances,0);
+ gl.bufferSubData(gl.ARRAY_BUFFER,0,mesh.upload.subarray(0,mesh.instances.length));
  gl.drawElementsInstanced(gl.TRIANGLES,mesh.indices,gl.UNSIGNED_SHORT,0,count);
  mesh.instances.length=0;
 }
@@ -730,7 +731,10 @@ function flash(col='hit'){
 function streak(){combo++;comboTime=4.2;kills++;maxCombo=Math.max(maxCombo,combo);if([5,10,20,30].includes(combo)){announce('🔥 '+combo+'×',1.4);cue(510+combo*16,.19,'sawtooth',.035);flash()}else cue(410+Math.min(combo,20)*17,.042,'triangle',.012);}
 
 try{best=clamp(Number(localStorage.getItem('gate-blaster-webgl-best'))||1,1,5)}catch(e){}
-function text(msg,x,y,z,color='#fff',life=.85){texts.push({msg,x,y,z,color,life,max:life})}
+function text(msg,x,y,z,color='#fff',life=.85){
+ if(texts.length>=72)texts.splice(0,texts.length-71);
+ texts.push({msg,x,y,z,color,life,max:life});
+}
 function announce(msg,dur=1.2){notice.textContent=msg;notice.style.opacity='1';noticeTime=dur}
 function spawn(kind,when,opts){waveEvents.push({kind,when,...opts})}
 
@@ -793,7 +797,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v41 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v42 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -956,7 +960,10 @@ function doSpawn(e){
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);pulse(boss.x,3.0,boss.z,'#ffc565',.72);
  }
 }
-function burst(x,y,z,col,n=12){for(let i=0;i<n;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col})}
+function burst(x,y,z,col,n=12){
+ const room=Math.max(0,240-sparks.length),count=Math.min(n,room);
+ for(let i=0;i<count;i++)sparks.push({x,y,z,vx:rnd(-3,3),vy:rnd(1,5),vz:rnd(-3,3),life:rnd(.25,.6),color:col});
+}
 function pulse(x,y,z,color='#fff1b0',duration=.38){
  if(rings.length>20)rings.shift();
  rings.push({x,y,z,color,life:duration,max:duration});
@@ -1574,14 +1581,16 @@ function soldier(x,z,playerSide,seed=0,big=1,variant='grunt',power=1,hit=false){
 }
 
 function drawMob(e){
+ const lod=crowdedVisuals();
  if(e.streamId){
   const col=mobArchetype(e.mobType);
   if(e.z<((fever||e.dense)?-5.5:-8)){soft(e.x,.49,e.z,.26,.67,.34,col.body);sphere(e.x,.99,e.z,.22,.22,.22,col.accent)}
+  else if(lod)crowdSoldier(e.x,e.z,false,e.mobType,e.hit>0);
   else soldier(e.x,e.z,false,e.seed,.33,e.mobType,1,e.hit>0);
   return;
  }
  const remain=clamp(e.hp/e.maxHp,0,1),n=Math.max(1,Math.ceil(e.n*remain)); const cols=Math.ceil(Math.sqrt(e.n*1.22)),rows=Math.ceil(e.n/cols); const visual=Math.min(n,e.z<-18?22:e.z<-7?42:72);
- for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<((fever||e.dense)?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
+ for(let i=0;i<visual;i++){const idx=Math.min(n-1,Math.floor((i+.5)*n/visual)); const r=Math.floor(idx/cols),c=idx%cols; const x=e.x+(c-(cols-1)/2)*.39,z=e.z+(r-(rows-1)/2)*.42; if(e.z<((fever||e.dense)?-5.5:-8)){soft(x,.49,z,.26,.67,.34,mobArchetype(e.mobType).body);sphere(x,.99,z,.22,.22,.22,mobArchetype(e.mobType).accent)} else if(lod)crowdSoldier(x,z,false,e.mobType,e.hit>0); else soldier(x,z,false,e.seed+idx*.6,.33,e.mobType,1,e.hit>0);}
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
 function gatePanelZ(e,index){
@@ -1727,9 +1736,31 @@ function drawSupport(){
  }
 }
 
+function crowdedVisuals(){
+ return !!player&&(player.team>64||bullets.length>64||entities.length>100||sparks.length>170);
+}
+function visualSample(items,max){
+ if(items.length<=max)return items;
+ const out=[],step=items.length/max;
+ for(let i=0;i<max;i++)out.push(items[Math.floor(i*step)]);
+ return out;
+}
+function crowdSoldier(x,z,playerSide,variant='grunt',hit=false){
+ const typ=playerSide?null:mobArchetype(variant);
+ const body=hit?C.armorHi:playerSide?C.blue:typ.body;
+ const accent=playerSide?C.blueLight:typ.accent;
+ sphere(x,.035,z,.72,.04,.57,C.shadow);
+ soft(x,.79,z,.56,.98,.48,body);
+ sphere(x,1.55,z-.04,.43,.43,.40,playerSide?C.skin:accent);
+ soft(x,1.78,z+.03,.50,.20,.44,playerSide?C.helmet:body);
+ box(x+.22,1.00,z-.48,.15,.15,.88,playerSide?C.gun:accent);
+}
 function squad(){
- const friends=formation(),lvl=commanderLevel();
- for(let i=0;i<friends.length;i++)soldier(friends[i].x,friends[i].z,true,i*.8,.33,'ally',lvl);
+ const friends=formation(),lvl=commanderLevel(),lod=crowdedVisuals()||friends.length>56;
+ for(let i=0;i<friends.length;i++){
+  if(lod)crowdSoldier(friends[i].x,friends[i].z,true,'ally',false);
+  else soldier(friends[i].x,friends[i].z,true,i*.8,.33,'ally',lvl);
+ }
  soldier(player.x,player.z+.42,true,99,.40,'commander',lvl);
  for(let i=0;i<player.drone;i++){
   const a=walk*2+i*TAU/player.drone,x=player.x+Math.cos(a)*1.45,z=player.z+Math.sin(a)*.75;
@@ -1793,7 +1824,16 @@ function render(){
     sphere(x,.48,z-.16,.11*bright,.10*bright,.25*bright,C.armorHi);
    }
   }
-  for(const b of bullets){const core=b.color==='gold'?C.spark:C.white, glow=b.color==='gold'?C.gold:C.cyan; sphere(b.x,b.y,b.z,.12,.12,.42,glow); sphere(b.x,b.y,b.z,.055,.055,.22,core); box(b.x,b.y,b.z+.34,.06,.06,.88,glow); box(b.x,b.y,b.z+.74,.03,.03,.54,core)} for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}for(const p of sparks){sphere(p.x,p.y,p.z,.10,.10,.10,p.color)} }
+  const lod=crowdedVisuals(),visibleBullets=visualSample(bullets,lod?52:96),visibleSparks=visualSample(sparks,lod?120:200);
+  for(const b of visibleBullets){
+   const core=b.color==='gold'?C.spark:C.white,glow=b.color==='gold'?C.gold:C.cyan;
+   sphere(b.x,b.y,b.z,.12,.12,.42,glow);
+   box(b.x,b.y,b.z+.40,.055,.055,1.18,core);
+   if(!lod)sphere(b.x,b.y,b.z,.055,.055,.22,core);
+  }
+  for(const p of enemyShots){const col=p.color==='magenta'?C.magenta:C.orange;sphere(p.x,p.y,p.z,.25,.24,.32,col);sphere(p.x,p.y,p.z,.105,.105,.16,C.white);box(p.x,p.y,p.z-.38,.085,.085,.72,col)}
+  for(const p of visibleSparks)sphere(p.x,p.y,p.z,.10,.10,.10,p.color);
+ }
  flush(); fx.clearRect(0,0,screenW,screenH); if(!player)return;
  // Transient radial flashes stay entirely in the 2D overlay, not expensive geometry.
  for(const ring of rings){
@@ -1829,7 +1869,7 @@ function render(){
   fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore();
  }
  for(const eb of enemyShots){const p=project(eb.x,eb.y,eb.z);if(p){fx.save();fx.globalCompositeOperation='lighter';const radius=20*p.scale,g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,radius);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.35,'rgba(255,80,175,.7)');g.addColorStop(1,'rgba(255,50,110,0)');fx.fillStyle=g;fx.beginPath();fx.arc(p.x,p.y,radius,0,TAU);fx.fill();fx.restore()}}
- for(const b of bullets){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
+ for(const b of visualSample(bullets,crowdedVisuals()?34:68)){const p=project(b.x,b.y,b.z); if(p){fx.save();fx.globalCompositeOperation='lighter'; const g=fx.createRadialGradient(p.x,p.y,0,p.x,p.y,18*p.scale); g.addColorStop(0,b.color==='gold'?'rgba(255,250,180,.95)':'rgba(255,255,255,.95)'); g.addColorStop(.35,b.color==='gold'?'rgba(255,201,79,.7)':'rgba(55,235,255,.7)'); g.addColorStop(1,'rgba(0,0,0,0)'); fx.fillStyle=g; fx.beginPath(); fx.arc(p.x,p.y,18*p.scale,0,TAU); fx.fill(); fx.restore(); }}
  for(const tt of texts){const p=project(tt.x,tt.y,tt.z);if(p){fx.save();fx.globalAlpha=clamp(tt.life/tt.max,0,1);fx.textAlign='center';fx.font=`1000 ${tt.msg.includes('✦')?23:19}px system-ui`;fx.lineWidth=4;fx.strokeStyle='#071321';fx.strokeText(tt.msg,p.x,p.y);fx.fillStyle=tt.color;fx.fillText(tt.msg,p.x,p.y);fx.restore()}}
 }
 function tag(value,x,y,color,bg,scale){
