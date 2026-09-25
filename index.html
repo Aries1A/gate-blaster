@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GATE BLASTER · WEBGL v27</title>
+<title>GATE BLASTER · WEBGL v28</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -771,7 +771,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v27 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v28 · 5 STAGES</div><h1>GATE <em>BLASTER</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -1326,9 +1326,9 @@ function update(dt){
   const oldZ=b.z;b.z+=b.vz*dt;b.life-=dt;if(b.life<=0)continue;
   let hit=null,near=1e6;
   for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind))continue;
-   // A dense troop row is one broad target. Crates and boss retain their
-   // original precise hitboxes, so choosing an equipment lane still matters.
-   const dx=Math.abs(b.x-e.x),radius=e.streamId?3.45:e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
+   // Stream enemies still get a little aim forgiveness, but never across the
+   // whole road. One shot should affect its local lane, not snap to center.
+   const dx=Math.abs(b.x-e.x),radius=e.streamId?.88:e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
    if(dx>radius)continue;
    const dz=e.z-oldZ;if(dz>1.15||e.z<b.z-1.15)continue;
    const score=dz+(e.streamId?dx*.32:0);
@@ -1344,7 +1344,8 @@ function update(dt){
    if(hit.streamId){
     // One visible shot sweeps across up to four neighbors in the same front
     // row, rather than requiring a separate bullet for every narrow hitbox.
-    const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<3.45);
+    const sweep=fever?1.28:1.12;
+    const neighbors=entities.filter(e=>!e.used&&e.kind==='mob'&&e.streamId===hit.streamId&&Math.abs(e.z-hit.z)<.50&&Math.abs(e.x-b.x)<sweep);
     neighbors.sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x));
     const targets=[hit,...neighbors.filter(e=>e!==hit)].slice(0,fever?6:4);
     for(const [i,e] of targets.entries()){
