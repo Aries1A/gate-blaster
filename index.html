@@ -947,7 +947,7 @@ function doSpawn(e){
   const spawned={kind:'boss',rushPart:part,rushRow,bossType:e.bossType||bp.id,name:bp.name,x:anchorX,anchorX,z:anchorZ,anchorZ,y:0,hp:e.hp,maxHp:e.hp,phase:1,hit:0,entered:false,attack:bp.attack,arrivalClock:.32,summon:bp.summon+(part?3:0),siegeClock:.05,sway:0,weakTime:0,lastCounter:-100,specialClock:part?1.5+part*.52:2.9,used:false};
   if(part){rushBosses.push(spawned);if(!boss)boss=spawned}
   else boss=spawned;
-  introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${part?'TRIPLE THREAT':boss.name}</b>`;
+  introTime=2.5;bossIntro.innerHTML=`<span>⚠ BOSS</span><b>${part?'BOSS SWARM':boss.name}</b>`;
   bossIntro.classList.add('show');cue(130,.5,'sawtooth',.045);sfx('bossStart');announce('⚠ BOSS',2.1);pulse(boss.x,3.0,boss.z,'#ffc565',.72);
  }
 }
