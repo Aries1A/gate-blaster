@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d91f2f">
+<title>広告のアレ 攻略Wiki</title>
+<meta name="description" content="『広告のアレ』の初心者攻略、強化、敵キャラクター、ステージ、ボス、EMERGENCY攻略をまとめた攻略Wiki。">
+<style>
+:root{--red:#d91f2f;--ink:#25282d;--muted:#70757d;--line:#e2e4e8;--bg:#f2f3f5;--green:#13844a;--gold:#a86e00;--blue:#1769aa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--ink);background:var(--bg)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);line-height:1.72}a{color:inherit}
+.topline{height:5px;background:var(--red)}header{background:#fff;border-bottom:1px solid var(--line)}
+.header-inner{max-width:1120px;margin:auto;padding:15px 18px;display:flex;align-items:center;gap:12px}
+.logo{font-size:22px;font-weight:1000;letter-spacing:-.04em}.logo b{color:var(--red)}
+.version{font-size:11px;font-weight:900;background:#fff0f1;color:var(--red);border:1px solid #ffc9ce;border-radius:999px;padding:3px 8px}
+.nav{background:var(--red);color:#fff;box-shadow:0 2px 5px #0001}.nav-inner{max-width:1120px;margin:auto;display:flex;overflow:auto;white-space:nowrap}
+.nav a{padding:10px 14px;text-decoration:none;font-size:13px;font-weight:900;border-right:1px solid #ffffff30}
+.page{max-width:1120px;margin:0 auto;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px}main{min-width:0}
+.breadcrumb{font-size:12px;color:var(--muted);margin:0 0 10px}.hero,.section,.side-card{background:#fff;border:1px solid var(--line);border-radius:8px}
+.hero{padding:22px;margin-bottom:16px;border-top:4px solid var(--red)}.hero h1{font-size:30px;line-height:1.25;margin:0 0 7px;letter-spacing:-.045em}.hero p{margin:0;color:var(--muted)}
+.updated{font-size:12px;color:#8b8f95;margin-top:11px}
+.game-shot{margin:18px 0 3px;display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center;background:#fafafa;border:1px solid var(--line);border-radius:10px;padding:14px}
+.game-shot img{width:100%;display:block;border-radius:14px;box-shadow:0 8px 24px #0002}.game-shot h3{margin:0 0 8px;font-size:18px}.game-shot p{font-size:13px;margin:0 0 8px;color:#555}
+.section{padding:20px;margin-bottom:16px}.section h2{font-size:21px;margin:0 0 16px;padding-bottom:9px;border-bottom:3px solid var(--red);letter-spacing:-.02em}
+.section h3{font-size:17px;margin:22px 0 10px;border-left:4px solid var(--red);padding-left:10px}
+.lead-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.rule-card{border:1px solid var(--line);border-radius:8px;padding:15px;background:#fafafa}
+.rule-card .icon{font-size:30px}.rule-card b{display:block;font-size:16px;margin:4px 0}.rule-card p{font-size:13px;margin:0;color:#555}
+.notice,.tip,.danger{padding:12px 14px;margin:14px 0;border-radius:4px;font-size:14px}.notice{border-left:5px solid var(--gold);background:#fff9e8}.tip{border-left:5px solid var(--green);background:#edf9f1}.danger{border-left:5px solid var(--red);background:#fff0f1}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:7px}table{border-collapse:collapse;width:100%;min-width:690px;background:#fff}
+th,td{padding:10px 11px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top;font-size:13px}th{background:#f7f7f8;text-align:left;font-weight:1000}tr:last-child td{border-bottom:0}
+.badge{display:inline-block;border-radius:4px;padding:2px 7px;font-weight:1000;font-size:11px}.s{background:#ffe5e8;color:#c41525}.a{background:#fff2d3;color:#946100}.b{background:#e7f3ff;color:#1769aa}
+.enemy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.enemy-card{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.enemy-title{padding:12px 14px;background:#f7f7f8;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.enemy-title strong{font-size:16px}.enemy-title span{font-size:12px;font-weight:900;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}.stat{padding:9px;text-align:center;border-right:1px solid var(--line)}.stat:last-child{border-right:0}
+.stat small{display:block;color:var(--muted);font-size:10px}.stat b{font-size:14px}.enemy-body{padding:12px 14px;font-size:13px}.enemy-body p{margin:0 0 7px}.enemy-body p:last-child{margin-bottom:0}
+.stage-list{display:grid;gap:10px}.stage{border:1px solid var(--line);border-radius:7px;padding:13px 14px}.stage-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.stage strong{font-size:15px}.stage small{color:var(--muted)}.stage p{margin:7px 0 0;font-size:13px}
+.spoiler{background:#26292f;color:#fff;border-radius:8px;padding:17px}.spoiler h3{border-left-color:#ff4d5d;margin-top:0}.spoiler .alarm{font-size:24px;font-weight:1000;color:#ff6674;letter-spacing:.06em}
+.side-card{padding:14px;position:sticky;top:12px}.side-card h3{font-size:14px;margin:0 0 8px}.toc a{display:block;text-decoration:none;border-top:1px solid var(--line);padding:8px 3px;font-size:13px;color:#4b4f55}.toc a:hover{color:var(--red)}
+details{border:1px solid var(--line);border-radius:6px;margin:8px 0;background:#fafafa}summary{cursor:pointer;font-weight:900;padding:11px 12px}details p{padding:0 12px 12px;margin:0;font-size:13px}
+footer{max-width:1120px;margin:5px auto 35px;padding:0 18px;color:#7c8087;font-size:12px}
+@media(max-width:820px){.page{grid-template-columns:1fr;padding:12px}aside{display:none}.lead-grid,.enemy-grid{grid-template-columns:1fr}.hero{padding:18px}.hero h1{font-size:25px}.header-inner{padding:12px}.section{padding:16px}.game-shot{grid-template-columns:1fr}.game-shot img{max-width:330px;margin:auto}}
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<header><div class="header-inner"><div class="logo">広告の<b>アレ</b> 攻略Wiki</div><span class="version">WEBGL v48対応</span></div></header>
+<nav class="nav"><div class="nav-inner">
+<a href="#beginner">初心者攻略</a><a href="#upgrade">強化一覧</a><a href="#characters">敵キャラ一覧</a><a href="#stages">ステージ攻略</a><a href="#boss">ボス攻略</a><a href="#emergency">EMERGENCY</a>
+</div></nav>
+
+<div class="page">
+<main>
+<div class="breadcrumb">広告のアレ 攻略Wiki ＞ 総合攻略</div>
+
+<section class="hero">
+<h1>『広告のアレ』攻略まとめ</h1>
+<p>人数を増やし、強化を選び、大量の敵を撃ち抜くランゲーム。初見で分かりづらい「+1」「宝箱」「BOOST UP」から、敵の詳細データ、ボス攻略までまとめています。</p>
+<div class="updated">最終更新：2026/09/27　｜　ゲーム本体 WEBGL v48 基準</div>
+<div class="game-shot">
+<img src="./gameplay.jpg" alt="広告のアレ Stage 3 FEVERの実際のゲーム画面">
+<div>
+<h3>実際のゲーム画面</h3>
+<p>画面下の青い部隊がプレイヤー。左右に移動しながら敵を自動射撃し、人数ゲートや宝箱を選んで戦力を伸ばしていきます。</p>
+<p><b>上段の「👥」が現在人数</b>、銃アイコン横が武器レベル。画面中央の大量の敵を倒すとエネルギーがたまり、BOOST UPが発生します。</p>
+<p>画像はStage 3のFEVER中。通常ステージより敵・報酬ともに多い特殊ステージです。</p>
+</div>
+</div>
+</section>
+
+<section class="section" id="beginner">
+<h2>初心者向け｜まず知っておきたい仕組み</h2>
+<div class="lead-grid">
+<div class="rule-card"><div class="icon">👥</div><b>「+1」は仲間が1人増える</b><p>水色の+1パネルを通過した枚数だけ人数が増加。人数が多いほど同時に撃つ弾も増え、被弾にも耐えやすくなります。</p></div>
+<div class="rule-card"><div class="icon">📦</div><b>宝箱は撃って壊す強化</b><p>宝箱は自動射撃でHPを削り切ると開封。武器・ドローン・ヘリ・砲台・人数などの強化を獲得できます。</p></div>
+<div class="rule-card"><div class="icon">⚡</div><b>敵撃破でBOOST UP</b><p>敵ウェーブを倒してエネルギーを集めると、攻撃・防御・支援の3候補から1つ選ぶ強化画面が出現します。</p></div>
+</div>
+<div class="danger"><b>宝箱を壊し切れないまま接触すると味方が減る。</b> 火力不足のときは無理に宝箱側へ寄らず、+1側を選ぶ方が安全です。</div>
+<div class="tip"><b>基本方針：</b>序盤は人数を確保 → 火力と連射を伸ばす → ボス前に防御や支援を混ぜる、と安定しやすいです。</div>
+</section>
+
+<section class="section" id="upgrade">
+<h2>強化アイテム一覧</h2>
+<h3>BOOST UP（ステージ中）</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>強化</th><th>効果</th><th>使いどころ</th><th>目安</th></tr></thead>
+<tbody>
+<tr><td>⚡ 連射</td><td>連射 +25%</td><td>雑魚・宝箱・ボスすべてに効く万能強化。</td><td><span class="badge s">S</span></td></tr>
+<tr><td>💥 火力</td><td>火力 +28%</td><td>敵が処理しきれないときの第一候補。</td><td><span class="badge s">S</span></td></tr>
+<tr><td>➤ 貫通弾</td><td>雑魚3体まで。100%→60%→35%</td><td>密集戦向け。横方向の巻き込みは最初の命中のみ。</td><td><span class="badge a">A</span></td></tr>
+<tr><td>🌟 OD</td><td>9秒間 火力 +80%</td><td>一時的な突破力。敵密集やボス削りに。</td><td><span class="badge a">A</span></td></tr>
+<tr><td>👥 増援</td><td>人数 +12</td><td>人数が減ったときの立て直し。弾数増加にもつながる。</td><td><span class="badge s">S</span></td></tr>
+<tr><td>🪖 再編成</td><td>人数 +8 / 防御 +5%</td><td>人数とボス耐久を同時に伸ばす。</td><td><span class="badge a">A</span></td></tr>
+<tr><td>🛡 防御</td><td>ボス被害 -15%</td><td>後半・ボス戦で有効。最大70%。</td><td><span class="badge a">A</span></td></tr>
+<tr><td>✦ ドローン</td><td>主武器ダメージ +3</td><td>射撃そのものを底上げ。最大4機。</td><td><span class="badge a">A</span></td></tr>
+<tr><td>🚁 攻撃ヘリ</td><td>自動ロケット攻撃</td><td>敵を自動追尾して高威力攻撃。最大2機。</td><td><span class="badge s">S</span></td></tr>
+<tr><td>🔧 自動砲台</td><td>自動連射攻撃</td><td>継続火力を追加。最大2基。</td><td><span class="badge a">A</span></td></tr>
+</tbody></table></div>
+
+<h3>ステージクリア後の永続強化</h3>
+<p>ステージクリア後は、火力+25%、武器+1、連射+20%、貫通弾、人数、防御、各種支援から3候補が提示されます。ここで取った強化は次のステージにも持ち越されます。</p>
+</section>
+
+<section class="section" id="characters">
+<h2>キャラクター一覧｜敵図鑑</h2>
+<div class="notice">雑魚敵のHPは固定値ではなく、<b>ウェーブの基礎HP × 敵種HP倍率 × ステージ補正 × 編成人数</b>で決まります。そのため図鑑では「HP倍率」を掲載しています。大量ウェーブでは総HPが各兵士に分配されます。</div>
+
+<h3>雑魚敵</h3>
+<div class="enemy-grid">
+<div class="enemy-card">
+<div class="enemy-title"><strong>🔴 GRUNT</strong><span>標準兵</span></div>
+<div class="stats"><div class="stat"><small>HP倍率</small><b>×1.00</b></div><div class="stat"><small>速度補正</small><b>±0</b></div><div class="stat"><small>人数倍率</small><b>×1.70</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>基本は接触。</p><p><b>特徴：</b>最も標準的な敵。密集して横一列で押してくるため、単体性能より物量に注意。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>🟠 RUNNER</strong><span>高速兵</span></div>
+<div class="stats"><div class="stat"><small>HP倍率</small><b>×0.78</b></div><div class="stat"><small>速度補正</small><b>+1.30</b></div><div class="stat"><small>人数倍率</small><b>×1.90</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>接触。Stage 4では遠距離射撃も使用。</p><p><b>特徴：</b>柔らかい代わりに速く、数も多い。処理が遅れると一気に接近されやすい。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>🟥 BRUTE</strong><span>重装兵</span></div>
+<div class="stats"><div class="stat"><small>HP倍率</small><b>×1.55</b></div><div class="stat"><small>速度補正</small><b>-0.65</b></div><div class="stat"><small>人数倍率</small><b>×1.20</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>接触。</p><p><b>特徴：</b>最も硬い雑魚。遅いが、前衛が残ると後ろの敵まで弾が届きにくくなる。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>🟣 GUARD</strong><span>射撃兵</span></div>
+<div class="stats"><div class="stat"><small>HP倍率</small><b>×1.20</b></div><div class="stat"><small>速度補正</small><b>-0.15</b></div><div class="stat"><small>人数倍率</small><b>×1.40</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>接触＋遠距離弾。射撃1発で最大3人を失う可能性あり。</p><p><b>特徴：</b>放置すると人数を削られやすい。画面近くまで来たGUARDは優先して倒したい。</p></div>
+</div>
+</div>
+
+<h3>雑魚のダメージ仕様</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>攻撃</th><th>味方への被害</th><th>補足</th></tr></thead>
+<tbody>
+<tr><td>密集ウェーブの接触</td><td>基本 -1</td><td>同じウェーブの大量兵が重なっても、一気に全員分のダメージにはならない。</td></tr>
+<tr><td>ボス召喚兵の接触</td><td>接触した味方数ぶん</td><td>通常ウェーブより危険。隊列に深く入り込まれると大きく減る。</td></tr>
+<tr><td>GUARD / Stage 4 RUNNERの弾</td><td>最大 -3</td><td>弾が味方隊列と重なった人数に応じて1〜3人減少。</td></tr>
+</tbody></table></div>
+
+<h3 id="boss">ボスキャラクター</h3>
+<div class="enemy-grid">
+<div class="enemy-card">
+<div class="enemy-title"><strong>🤖 MEGA TITAN</strong><span>Stage 1 / 5</span></div>
+<div class="stats"><div class="stat"><small>Stage 1 HP</small><b>15,684</b></div><div class="stat"><small>Stage 5 HP</small><b>39,053</b></div><div class="stat"><small>召喚周期</small><b>4.9秒基準</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>砲撃予告＋2発の特殊弾。</p><p><b>攻略：</b>癖の少ない基本ボス。赤い攻撃範囲からギリギリで避けるとCOUNTERが大きくなる。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>⚡ STORM BEETLE</strong><span>Stage 2</span></div>
+<div class="stats"><div class="stat"><small>HP</small><b>20,474</b></div><div class="stat"><small>特殊弾</small><b>3発</b></div><div class="stat"><small>召喚周期</small><b>4.2秒基準</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>素早い狭めの砲撃＋高速3連弾。</p><p><b>攻略：</b>予告時間が短め。大きく動くより、警告を見て必要な分だけ横移動する方が安全。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>🛡 IRON CRUSHER</strong><span>Stage 3</span></div>
+<div class="stats"><div class="stat"><small>HP</small><b>28,104</b></div><div class="stat"><small>特殊弾</small><b>2発</b></div><div class="stat"><small>召喚周期</small><b>5.3秒基準</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>広範囲砲撃＋遅めの大型弾。砲撃ダメージ倍率は他より高い。</p><p><b>攻略：</b>範囲が広いので早めに退避。Stage 3自体も敵HPが高く、FEVERの物量直後なので人数管理が重要。</p></div>
+</div>
+
+<div class="enemy-card">
+<div class="enemy-title"><strong>☄ AERO HYDRA</strong><span>Stage 4</span></div>
+<div class="stats"><div class="stat"><small>HP</small><b>32,299</b></div><div class="stat"><small>レーザー被害</small><b>最大 -5</b></div><div class="stat"><small>召喚周期</small><b>4.4秒基準</b></div></div>
+<div class="enemy-body"><p><b>攻撃：</b>砲撃＋LOCK ONレーザー。</p><p><b>攻略：</b>ロック後も同じ場所に残らないこと。レーザー回避成功でもCOUNTERが狙える。</p></div>
+</div>
+</div>
+
+<div class="danger"><b>通常ボス共通：</b>ボスがプレイヤーの目前まで到達すると、道路全体を覆うFULL RANGE攻撃を繰り返します。命中時は現在人数の約50%が減少（防御で軽減）。ボスが近づく前に削り切るのが基本です。</div>
+<div class="tip"><b>COUNTER：</b>ボスの予告攻撃を避けると最大HPの約1〜8%を反撃ダメージとして与えられます。警告範囲の端ギリギリで避けるほど高威力。ただし予告中に別の攻撃を受けるとCOUNTER 0になります。</div>
+</section>
+
+<section class="section" id="stages">
+<h2>ステージ攻略</h2>
+<div class="stage-list">
+<div class="stage"><div class="stage-head"><strong>Stage 1｜STANDARD</strong><small>HP ×0.95</small></div><p>基礎ステージ。まず人数を増やし、宝箱を安定して壊せる火力を作る。ボスはMEGA TITAN。</p></div>
+<div class="stage"><div class="stage-head"><strong>Stage 2｜SPEED RUSH</strong><small>速度 +0.95</small></div><p>敵の移動速度が大幅アップ。RUNNERを処理しきれないと接触されやすいため、連射と火力の価値が高い。</p></div>
+<div class="stage"><div class="stage-head"><strong>Stage 3｜🔥 FEVER / ARMORED ZONE</strong><small>HP ×1.23 / エネルギー ×2</small></div><p>通常よりさらに大量の敵・宝箱が出現。敵は硬いが撃破エネルギー+2でBOOST UP回数も多い。ここでビルドを大きく伸ばせる。</p></div>
+<div class="stage"><div class="stage-head"><strong>Stage 4｜CROSS FIRE</strong><small>射撃間隔 ×0.77</small></div><p>敵の遠距離射撃が激化し、RUNNERも射撃を行う。敵弾を避けながらGUARD系を早めに処理する。</p></div>
+<div class="stage"><div class="stage-head"><strong>Stage 5｜👑 FINAL</strong><small>HP ×1.10 / Boss ×1.05</small></div><p>敵・ボスともに強化された最終ステージ。専用高速BGMが流れる。人数と防御を残した状態で最終ボスへ。</p></div>
+</div>
+</section>
+
+<section class="section">
+<h2>よくある質問</h2>
+<details><summary>人数が増えると何が強くなる？</summary><p>人数そのものがライフであり、一定人数ごとに同時発射する弾数も増えます。そのため人数は耐久と火力の両方に関わります。</p></details>
+<details><summary>宝箱は絶対取った方がいい？</summary><p>いいえ。壊し切れない火力で突っ込むと味方が減るため、序盤や人数不足時は+1ゲートを優先するのも重要です。</p></details>
+<details><summary>Stage 3だけ敵が多すぎる？</summary><p>仕様です。Stage 3はFEVERで、通常ステージより追加ウェーブと追加宝箱が出現します。その代わり強化機会も増えます。</p></details>
+</section>
+
+<section class="section" id="emergency">
+<h2>隠し要素｜EMERGENCY</h2>
+<div class="spoiler">
+<div class="alarm">⚠ SYSTEM ALERT ⚠</div>
+<h3>9-BOSS RUSH</h3>
+<p>Stage 5をクリアした後、画面に表示される「ホーム画面へ？」には仕掛けがあります。選択するとEMERGENCYが発生し、9体のボスによる隠しラッシュが開始されます。</p>
+<p><b>ボスがプレイヤー付近まで到達した後、10秒耐えるごとに救援BOOSTが到着。</b>「人数+18 → 火力+25% → 連射+20%」の順で繰り返されるため、人数が減っても粘れば逆転可能です。</p>
+<p>ラッシュ中は通常ボスのFULL RANGE攻撃は発生しません。各ボス固有の弾・レーザーを避けながら、1体ずつ数を減らすのが重要です。</p>
+</div>
+</section>
+
+</main>
+
+<aside>
+<div class="side-card">
+<h3>攻略メニュー</h3>
+<div class="toc">
+<a href="#beginner">初心者向け基本システム</a>
+<a href="#upgrade">強化アイテム一覧</a>
+<a href="#characters">敵キャラクター一覧</a>
+<a href="#boss">ボスキャラクター</a>
+<a href="#stages">ステージ別攻略</a>
+<a href="#emergency">EMERGENCY</a>
+</div>
+</div>
+</aside>
+</div>
+
+<footer>『広告のアレ』攻略データはゲーム本体の現在の実装をもとに作成しています。バージョン更新で数値・仕様が変わる場合があります。</footer>
+</body>
+</html>
