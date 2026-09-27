@@ -20,7 +20,15 @@
 .hero{padding:22px;margin-bottom:16px;border-top:4px solid var(--red)}.hero h1{font-size:30px;line-height:1.25;margin:0 0 7px;letter-spacing:-.045em}.hero p{margin:0;color:var(--muted)}
 .updated{font-size:12px;color:#8b8f95;margin-top:11px}
 .game-shot{margin:18px 0 3px;display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center;background:#fafafa;border:1px solid var(--line);border-radius:10px;padding:14px}
-.game-shot img{width:100%;display:block;border-radius:14px;box-shadow:0 8px 24px #0002}.game-shot h3{margin:0 0 8px;font-size:18px}.game-shot p{font-size:13px;margin:0 0 8px;color:#555}.gallery-grid{margin-top:16px;display:grid;grid-template-columns:1fr;gap:10px}.gallery-grid img{width:100%;display:block;border-radius:10px;border:1px solid var(--line);box-shadow:0 5px 16px #0001}.gallery-note{font-size:12px;color:var(--muted);margin-top:6px}
+.game-shot img{width:100%;display:block;border-radius:14px;box-shadow:0 8px 24px #0002}.game-shot h3{margin:0 0 8px;font-size:18px}.game-shot p{font-size:13px;margin:0 0 8px;color:#555}.gallery-grid{margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.shot-card{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.shot-card>img{width:100%;height:auto;display:block}
+.shot-card figcaption{padding:8px 10px;font-size:12px;font-weight:800;color:#555;border-top:1px solid var(--line)}
+.shot-crop{position:relative;overflow:hidden;background:#eef1f3}
+.shot-crop img{position:absolute;left:0;width:100%;height:auto;display:block}
+.crop-gates{height:235px}.crop-gates img{top:-92px}
+.crop-hud{height:120px}.crop-hud img{top:0}
+.crop-battle{height:235px}.crop-battle img{top:-155px}
 .section{padding:20px;margin-bottom:16px}.section h2{font-size:21px;margin:0 0 16px;padding-bottom:9px;border-bottom:3px solid var(--red);letter-spacing:-.02em}
 .section h3{font-size:17px;margin:22px 0 10px;border-left:4px solid var(--red);padding-left:10px}
 .lead-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.rule-card{border:1px solid var(--line);border-radius:8px;padding:15px;background:#fafafa}
@@ -59,7 +67,7 @@ footer{max-width:1120px;margin:5px auto 35px;padding:0 18px;color:#7c8087;font-s
 <p>人数を増やし、強化を選び、大量の敵を撃ち抜くランゲーム。初見で分かりづらい「+1」「宝箱」「BOOST UP」から、敵の詳細データ、ボス攻略までまとめています。</p>
 <div class="updated">最終更新：2026/09/27　｜　ゲーム本体 WEBGL v48 基準</div>
 <div class="game-shot">
-<img src="./gameplay.jpg?v=2" alt="広告のアレ Stage 3 FEVERの実際のゲーム画面">
+<img src="./gameplay.jpg?v=4" alt="広告のアレ Stage 3 FEVERの実際のゲーム画面">
 <div>
 <h3>実際のゲーム画面</h3>
 <p>画面下の青い部隊がプレイヤー。左右に移動しながら敵を自動射撃し、人数ゲートや宝箱を選んで戦力を伸ばしていきます。</p>
@@ -68,8 +76,10 @@ footer{max-width:1120px;margin:5px auto 35px;padding:0 18px;color:#7c8087;font-s
 </div>
 </div>
 <div class="gallery-grid">
-<img src="./gallery.jpg?v=2" alt="広告のアレのStage 1、+1ゲートと宝箱、HUD、Stage 3 FEVERの攻略用スクリーンショット集">
-<div class="gallery-note">Stage 1 / +1と宝箱 / HUD / Stage 3 FEVER。攻略項目に対応するゲーム画面をまとめています。</div>
+<figure class="shot-card"><img src="./stage1.jpg?v=4" alt="広告のアレ Stage 1のゲーム画面"><figcaption>Stage 1 全景</figcaption></figure>
+<figure class="shot-card"><div class="shot-crop crop-gates"><img src="./stage1.jpg?v=4" alt="+1ゲートと宝箱"></div><figcaption>+1ゲートと宝箱</figcaption></figure>
+<figure class="shot-card"><div class="shot-crop crop-hud"><img src="./gameplay.jpg?v=4" alt="人数・武器・支援を表示するHUD"></div><figcaption>HUDの見方</figcaption></figure>
+<figure class="shot-card"><div class="shot-crop crop-battle"><img src="./gameplay.jpg?v=4" alt="Stage 3 FEVERの密集戦"></div><figcaption>Stage 3 FEVERの密集戦</figcaption></figure>
 </div>
 </section>
 
