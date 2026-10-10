@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#b9eafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>広告のアレ · WEBGL v48</title>
+<title>広告のアレ · WEBGL v49</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif}
 *{box-sizing:border-box}
@@ -864,7 +864,7 @@ function beginRun(){stage=1;runBuild=makeBuild();start()}
 
 function menu(){
  mode='menu';
- show(`<div class="eyebrow">WEBGL v48 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>👥 +1　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
+ show(`<div class="eyebrow">WEBGL v49 · 5 STAGES</div><h1>広告の<em>アレ</em></h1>${stagePath(0,1)}<p>🎯 数字ゲート　 /　 ★ 強化<br>← スワイプ →</p><button class="cta" id="start">▶ PLAY</button><div class="mini">🏆 ${best} / 5</div>`);
  $('start').onclick=beginRun
 }
 function show(html){panel.innerHTML=html;overlay.classList.remove('off')}
@@ -1015,7 +1015,10 @@ function doSpawn(e){
   const type=e.mobType||chooseMobType(Math.floor(e.when*10));
   const a=mobArchetype(type),modifier=stageModifier(),n=Math.ceil(e.n*a.n),hp=Math.ceil(crowdHealth(Math.ceil(e.hp*a.hp),n)*modifier.hp*1.05);
   entities.push({kind:'mob',mobType:type,x:e.x,z:-29,y:0,hp,maxHp:hp,n,speed:rnd(6.3,7.7)+a.speed+modifier.speed,fireClock:1.6+rnd(0,.8),hit:0,seed:rnd(0,100),used:false,scale:a.scale});
- }else if(e.kind==='gate')entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,gain:e.gain,taken:0,nextPanel:0,length:8.5,used:false});
+ }else if(e.kind==='gate'){
+   const startValue=-Math.max(6,Math.ceil((e.gain||20)*.70));
+   entities.push({kind:'gate',pair:e.pair,x:e.x,z:-32,y:0,speed:6.8,value:startValue,startValue,shots:0,hit:0,touched:false,used:false});
+  }
  else if(e.kind==='crate'){const hp=e.feverBonus?Math.ceil(crateDurability(e.hp)*.76):crateDurability(e.hp);entities.push({kind:'crate',pair:e.pair,x:e.x,z:-31,y:0,speed:6.9,hp,maxHp:hp,reward:e.reward,feverBonus:!!e.feverBonus,hit:0,used:false});}
  else if(e.kind==='boss'){
   const bp=bossByType(e.bossType),part=e.rushPart||0;
@@ -1376,18 +1379,32 @@ function update(dt){
     collectRushAid(e);e.used=true;
    }
   }else if(e.kind==='gate'){
-   // Process the actual panes crossed this frame, one by one. A panel cannot
-   // be collected later by switching lanes after it already went past.
-   while(e.nextPanel<e.gain&&gatePanelZ(e,e.nextPanel)>=player.z){
+   // One number panel: apply its signed value when the squad reaches it.
+   if(!e.touched&&e.z>=player.z-.18){
+    e.touched=true;
     if(Math.abs(e.x-player.x)<1.38){
-     e.taken++;player.team++;
-     text('+1',player.x+rnd(-.16,.16),1.55,player.z-1.35,'#93fff3',.46);
-     if(e.taken%5===0)pulse(player.x,1.10,player.z-1.3,'#81ffe9',.23);
-     cue(780,.035,'triangle',.010);
+     const delta=e.value|0,before=Math.floor(player.team);
+     player.team=Math.max(0,before+delta);
+     if(delta>0){
+      text('+'+delta,player.x,1.80,player.z-1.15,'#8dfff0',.9);
+      pulse(player.x,1.10,player.z-1.15,'#81ffe9',.35);
+      cue(880,.12,'triangle',.035);
+     }else if(delta<0){
+      const lost=before-Math.floor(player.team);
+      if(lost>0){
+       playerDamageSerial++;
+       text('-'+lost,player.x,1.80,player.z-1.15,'#ff9aa8',.9);
+       burst(player.x,.9,player.z-1.0,C.redLight,12);
+       flash('hurt');cue(145,.16,'sawtooth',.035);
+      }
+      if(player.team<1)lose();
+     }else{
+      text('±0',player.x,1.80,player.z-1.15,'#fff0a3',.7);
+      cue(520,.07,'triangle',.018);
+     }
     }
-    e.nextPanel++;
-   }
-   if(e.nextPanel>=e.gain)e.used=true;
+    e.used=true;
+   }else if(e.z>player.z+2)e.used=true;
   }else if(e.kind==='mob'){
    if(!e.touched&&e.z>=player.z-.16){
     e.touched=true;
@@ -1514,10 +1531,10 @@ function update(dt){
  for(const b of bullets){
   const oldZ=b.z;b.z+=b.vz*dt;b.life-=dt;if(b.life<=0)continue;
   let hit=null,near=1e6;
-  for(const e of entities){if(e.used||!['mob','crate'].includes(e.kind))continue;
+  for(const e of entities){if(e.used||!['mob','crate','gate'].includes(e.kind))continue;
    // Stream enemies still get a little aim forgiveness, but never across the
    // whole road. One shot should affect its local lane, not snap to center.
-   const dx=Math.abs(b.x-e.x),radius=e.streamId?.88:e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
+   const dx=Math.abs(b.x-e.x),radius=e.kind==='gate'?1.18:e.streamId?.88:e.kind==='mob'?Math.min(1.9,.22+Math.ceil(Math.sqrt(e.n))*.18):.86;
    if(dx>radius)continue;
    const dz=e.z-oldZ;if(dz>1.15||e.z<b.z-1.15)continue;
    const score=dz+(e.streamId?dx*.32:0);
@@ -1530,6 +1547,17 @@ function update(dt){
    }
   }
   if(hit){
+   if(hit.kind==='gate'){
+    hit.value++;hit.shots++;hit.hit=.10;
+    if(hit.value===0||hit.value===1||hit.shots%5===0){
+     const c=hit.value>0?'#8dfff0':hit.value===0?'#fff0a3':'#ff9aa8';
+     text((hit.value>0?'+':'')+hit.value,hit.x,2.15,hit.z,c,.38);
+     pulse(hit.x,1.25,hit.z,c,.14);
+    }
+    if(hit.shots%2===0)cue(hit.value>0?780:520,.025,'triangle',.006);
+    b.life=0;
+    continue;
+   }
    const pierceScale=b.pierceHits===0?1:b.pierceHits===1?.60:.35;
    if(hit.streamId&&b.pierceHits===0){
     // Keep the familiar row sweep only on the first impact. Secondary
@@ -1714,25 +1742,15 @@ function drawMob(e){
  }
  box(e.x,1.33,e.z,1.9,.105,.11,C.redDark); box(e.x-.95*(1-remain),1.34,e.z-.012,1.9*remain,.11,.125,e.hit>0?C.white:mobArchetype(e.mobType).accent);
 }
-function gatePanelZ(e,index){
- return e.z+(index-(e.gain-1)/2)*(e.length/e.gain);
-}
 function drawGate(e){
- // Every visible pane corresponds to exactly ONE possible soldier.
- // Glass is blended in the dedicated final WebGL pass.
- const step=e.length/e.gain;
- for(let i=e.nextPanel;i<e.gain;i++){
-  const z=gatePanelZ(e,i);
-  if(z>player.z+3||z<-36)continue;
-  const live=e.taken<e.gain;
-  glass(e.x,1.30,z,2.35,2.15,.055,live?[.30,.92,1,.30]:[.33,.47,.55,.17]);
-  // Thin edge lines reinforce the repetition even when panels overlap.
-  for(const sign of [-1,1])box(e.x+sign*1.19,1.29,z,.052,2.12,.068,C.cyan);
-  box(e.x,2.41,z,2.45,.065,.08,C.armorHi);
- }
- // Short base rail makes the lane readable without hiding crates.
- soft(e.x,.16,e.z,2.44,.17,e.length,C.blueDark);
- for(const sign of [-1,1])soft(e.x+sign*1.23,.22,e.z,.11,.23,e.length,C.blueLight);
+ // Single shootable number gate. Red below zero, yellow at zero, cyan above zero.
+ const positive=e.value>0,zero=e.value===0;
+ const pane=positive?[.22,.96,.86,e.hit>0?.42:.32]:zero?[1,.78,.20,e.hit>0?.43:.33]:[1,.25,.32,e.hit>0?.43:.33];
+ const edge=positive?C.cyan:zero?C.warn:C.redLight;
+ glass(e.x,1.32,e.z,2.45,2.25,.075,pane);
+ for(const sign of [-1,1])soft(e.x+sign*1.24,1.30,e.z,.10,2.34,.13,edge);
+ soft(e.x,2.47,e.z,2.58,.11,.14,edge);
+ soft(e.x,.17,e.z,2.58,.18,.34,C.blueDark);
 }
 
 function drawBoost(e){
@@ -1977,17 +1995,12 @@ function render(){
  }
 
  for(const e of entities){ if(e.kind==='gate'){
-  // Label near panes individually; stagger distant panes to avoid 40 labels
-  // occupying the same few pixels on a small portrait screen.
-  let shown=0;
-  for(let i=e.nextPanel;i<e.gain&&shown<15;i++){
-   const z=gatePanelZ(e,i);
-   if(z<-28||z>player.z+1||i%2&&z<player.z-4)continue;
-   const p=project(e.x,1.46,z);
-   if(p&&p.y>-20&&p.y<screenH+20){
-    tag('+1',p.x,p.y,'#eaffff','#167a97',p.scale*.61);
-    shown++;
-   }
+  const p=project(e.x,1.48,e.z);
+  if(p&&p.y>-30&&p.y<screenH+30){
+   const value=(e.value>0?'+':'')+e.value;
+   const fg=e.value>0?'#eaffff':e.value===0?'#fff7bd':'#fff0f2';
+   const bg=e.value>0?'#087f83':e.value===0?'#8a6912':'#9b2635';
+   tag(value,p.x,p.y,fg,bg,p.scale*1.18);
   }
 } else if(e.kind==='crate'){const p=project(e.x,2.25,e.z);if(p && p.y>-50 && p.y<screenH)tag(({weapon:'🔫',drone:'✦',heli:'🚁',turret:'🔧',team:'👥'}[e.reward]||'★')+' '+Math.ceil(Math.max(0,e.hp)),p.x,p.y,'#fff2c1','#80501e',p.scale*.85);} else if(e.kind==='boost'){const p=project(e.x,2.05,e.z);if(p&&p.y>-40&&p.y<screenH)tag(({team:'👥 +18',power:'💥 +25%',rate:'⚡ +20%'}[e.boostType]||'BOOST'),p.x,p.y,'#fff6ad','#7a5310',p.scale*.85);} else if(e.kind==='mob' && !e.streamId && e.z>-34 && e.z<player.z+.5){const p=project(e.x,1.9,e.z); if(p && p.y>-40 && p.y<screenH) tag('×'+Math.ceil(e.n*clamp(e.hp/e.maxHp,0,1)),p.x,p.y,mobArchetype(e.mobType).accent[0]>.8?'#fff4d7':'#fff4f4','#6a1d2d',p.scale*.65);}}
  for(const orb of bossHazards){
